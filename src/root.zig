@@ -1,20 +1,13 @@
-const std = @import("std");
-const Io = std.Io;
-const c = @import("c");
+pub const ffi = @import("c");
 
-pub fn printAnotherMessage(writer: *Io.Writer) Io.Writer.Error!void {
-    try writer.print("Run `zig build test` to run the tests.\n", .{});
-}
 
-pub fn add(a: i32, b: i32) i32 {
-    return a + b;
-}
+pub const MjModel = ffi.mjModel;
+pub const MjData = ffi.mjData;
 
-test "basic add functionality" {
-    try std.testing.expect(add(3, 7) == 10);
-}
+pub const loadXML = ffi.mj_loadXML;
+pub const makeData = ffi.mj_makeData;
 
 test "load hello mujoco model" {
     var buffer: [1024]u8 = undefined;
-    _ = c.mj_loadXML("hello.xml", null, &buffer, 1000);
+    _ = ffi.mj_loadXML("hello.xml", null, &buffer, 1000);
 }
