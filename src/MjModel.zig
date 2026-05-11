@@ -27,7 +27,7 @@ pub fn from_xml(path: []const u8, gpa: Allocator) !@This() {
     const raw_model = ffi.mj_loadXML(c_path, null, &err_buffer, 1000);
 
     if (raw_model == null) {
-        log.err("Error loading mujoco model from xml: {s}", .{ err_buffer });
+        log.err("Error loading mujoco model from xml: {s}", .{err_buffer});
         return error.LoadingModel;
     }
 
@@ -37,7 +37,6 @@ pub fn from_xml(path: []const u8, gpa: Allocator) !@This() {
 pub fn deinit(self: *const @This()) void {
     ffi.mj_deleteModel(self.model);
 }
-
 
 pub fn data(self: *const @This()) !MjData {
     const raw_data = ffi.mj_makeData(self.model);

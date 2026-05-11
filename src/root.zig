@@ -20,10 +20,10 @@ test "ffi: load hello mujoco model" {
 test "load hello mujoco model" {
     const testing = std.testing;
 
-    const model = try MjModel.from_xml("hello.xml", testing.allocator);
+    const model: MjModel = try .from_xml("hello.xml", testing.allocator);
     defer model.deinit();
 
-    var data = try model.data();
+    var data: MjData = try model.data();
     defer data.deinit();
 
     while (data.data.time < 10) {
