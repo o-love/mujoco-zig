@@ -71,6 +71,9 @@ pub fn buildMujoco(
     addMujocoDependencies(mujoco_mod, b);
 
     MujocoEngineSources.addToModule(&mujoco_modD);
+    MujocoXmlSources.addToModule(&mujoco_modD);
+    MujocoUserCppSources.addToModule(&mujoco_modD);
+    MujocoUserCSources.addToModule(&mujoco_modD);
 
     return mujoco_lib;
 }
@@ -86,7 +89,6 @@ fn addMujocoDependencies(mod: *std.Build.Module, b: *std.Build) void {
     mod.addCMacro("CCD_STATIC_DEFINE", "1");
     mod.addCMacro("MUJOCO_DLL_EXPORTS", "1");
     mod.addCMacro("MC_IMPLEM_ENABLE", "1");
-
 }
 
 fn addCcd(mod: *std.Build.Module, b: *std.Build) void {
@@ -125,8 +127,8 @@ fn addTinyXml2(mod: *std.Build.Module, b: *std.Build) void {
 
     mod.addCSourceFiles(.{
         .root = tinyxml2_dep.path("."),
-        .files = &.{ "tinyxml2.cpp" },
-        .flags = &.{ "-std=c++17" },
+        .files = &.{"tinyxml2.cpp"},
+        .flags = &.{"-std=c++17"},
     });
     mod.addIncludePath(tinyxml2_dep.path("."));
 }
@@ -136,8 +138,8 @@ fn addLodePng(mod: *std.Build.Module, b: *std.Build) void {
 
     mod.addCSourceFiles(.{
         .root = lodepng_dep.path("."),
-        .files = &.{ "lodepng.cpp" },
-        .flags = &.{ "-std=c++17" },
+        .files = &.{"lodepng.cpp"},
+        .flags = &.{"-std=c++17"},
     });
     mod.addIncludePath(lodepng_dep.path("."));
 }
@@ -147,8 +149,8 @@ fn addTinyObjLoader(mod: *std.Build.Module, b: *std.Build) void {
 
     mod.addCSourceFiles(.{
         .root = tinyobjloader_dep.path("."),
-        .files = &.{ "tiny_obj_loader.cc" },
-        .flags = &.{ "-std=c++17" },
+        .files = &.{"tiny_obj_loader.cc"},
+        .flags = &.{"-std=c++17"},
     });
     mod.addIncludePath(tinyobjloader_dep.path("."));
 }
@@ -206,18 +208,20 @@ const ModD = struct {
 const MujocoModule = struct {
     root: []const u8,
     sources: []const []const u8,
+    flags: []const []const u8 = &.{},
 
     pub fn addToModule(self: *const MujocoModule, modD: *const ModD) void {
         modD.mod.addCSourceFiles(.{
             .root = modD.dep.path(self.root),
             .files = self.sources,
+            .flags = self.flags,
         });
     }
 };
 
 const MujocoEngineSources: MujocoModule = .{
     .root = "src/engine",
-    .sources = &[_][]const u8{
+    .sources = &.{
         "engine_callback.c",
         "engine_collision_box.c",
         "engine_collision_convex.c",
@@ -256,5 +260,50 @@ const MujocoEngineSources: MujocoModule = .{
         "engine_vis_init.c",
         "engine_vis_interact.c",
         "engine_vis_visualize.c",
+    },
+};
+
+const MujocoXmlSources: MujocoModule = .{
+    .root = "src/xml",
+    .sources = &.{
+        "xml.cc",
+        "xml_api.cc",
+        "xml_base.cc",
+        "xml_global.cc",
+        "xml_native_reader.cc",
+        "xml_numeric_format.cc",
+        "xml_native_writer.cc",
+        "xml_urdf.cc",
+        "xml_util.cc",
+    },
+    .flags = &.{
+        "-std=c++20",
+    },
+};
+
+const MujocoUserCppSources: MujocoModule = .{
+    .root = "src/user",
+    .sources = &.{
+        "user_api.cc",
+        "user_cache.cc",
+        "user_composite.cc",
+        "user_flexcomp.cc",
+        "user_mesh.cc",
+        "user_model.cc",
+        "user_objects.cc",
+        "user_resource.cc",
+        "user_threadpool.cc",
+        "user_util.cc",
+        "user_vfs.cc",
+    },
+    .flags = &.{
+        "-std=c++20",
+    },
+};
+
+const MujocoUserCSources: MujocoModule = .{
+    .root = "src/user",
+    .sources = &.{
+        "user_init.c",
     },
 };
