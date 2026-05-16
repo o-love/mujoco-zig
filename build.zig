@@ -51,18 +51,134 @@ pub fn buildMujoco(
         .link_libcpp = true,
     });
 
+    const mujoco_modD: ModD = .{
+        .mod = mujoco_mod,
+        .dep = mujoco_dep,
+    };
+
     const mujoco_lib = b.addLibrary(.{
         .name = "mujoco",
         .root_module = mujoco_mod,
     });
 
+    mujoco_mod.addIncludePath(mujoco_dep.path("include"));
+    mujoco_mod.addIncludePath(mujoco_dep.path("src"));
+
     for (MujocoHeaders) |header| {
         mujoco_lib.installHeader(mujoco_dep.path(header), header["include/".len..]);
     }
 
-    MujocoEngineSources.addToModule(mujoco_mod, mujoco_dep);
+    addMujocoDependencies(mujoco_mod, b);
+
+    MujocoEngineSources.addToModule(&mujoco_modD);
 
     return mujoco_lib;
+}
+
+fn addMujocoDependencies(mod: *std.Build.Module, b: *std.Build) void {
+    addCcd(mod, b);
+    addTinyXml2(mod, b);
+    addLodePng(mod, b);
+    addTinyObjLoader(mod, b);
+    addQhull(mod, b);
+
+    mod.addCMacro("_GNU_SOURCE", "1");
+    mod.addCMacro("CCD_STATIC_DEFINE", "1");
+    mod.addCMacro("MUJOCO_DLL_EXPORTS", "1");
+    mod.addCMacro("MC_IMPLEM_ENABLE", "1");
+
+}
+
+fn addCcd(mod: *std.Build.Module, b: *std.Build) void {
+    const ccd_dep = b.dependency("ccd", .{});
+
+    const ccd_config_header = b.addConfigHeader(.{
+        .style = .{ .cmake = ccd_dep.path("src/ccd/config.h.cmake.in") },
+        .include_path = "ccd/config.h",
+    }, .{
+        .CCD_VERSION = "2.1",
+        .CCD_SINGLE = null,
+        .CCD_DOUBLE = true,
+    });
+
+    mod.addConfigHeader(ccd_config_header);
+    mod.addIncludePath(ccd_dep.path("src"));
+    mod.addCSourceFiles(.{
+        .root = ccd_dep.path("src"),
+        .files = &.{
+            "ccd.c",
+            "mpr.c",
+            "polytope.c",
+            "support.c",
+            "vec3.c",
+        },
+        .flags = &.{
+            "-DCCD_STATIC_DEFINE",
+            "-D_GNU_SOURCE",
+            "-DENABLE_DOUBLE_PRECISION",
+        },
+    });
+}
+
+fn addTinyXml2(mod: *std.Build.Module, b: *std.Build) void {
+    const tinyxml2_dep = b.dependency("tinyxml2", .{});
+
+    mod.addCSourceFiles(.{
+        .root = tinyxml2_dep.path("."),
+        .files = &.{ "tinyxml2.cpp" },
+        .flags = &.{ "-std=c++17" },
+    });
+    mod.addIncludePath(tinyxml2_dep.path("."));
+}
+
+fn addLodePng(mod: *std.Build.Module, b: *std.Build) void {
+    const lodepng_dep = b.dependency("lodepng", .{});
+
+    mod.addCSourceFiles(.{
+        .root = lodepng_dep.path("."),
+        .files = &.{ "lodepng.cpp" },
+        .flags = &.{ "-std=c++17" },
+    });
+    mod.addIncludePath(lodepng_dep.path("."));
+}
+
+fn addTinyObjLoader(mod: *std.Build.Module, b: *std.Build) void {
+    const tinyobjloader_dep = b.dependency("tinyobjloader", .{});
+
+    mod.addCSourceFiles(.{
+        .root = tinyobjloader_dep.path("."),
+        .files = &.{ "tiny_obj_loader.cc" },
+        .flags = &.{ "-std=c++17" },
+    });
+    mod.addIncludePath(tinyobjloader_dep.path("."));
+}
+
+fn addQhull(mod: *std.Build.Module, b: *std.Build) void {
+    const qhull_dep = b.dependency("qhull", .{});
+
+    mod.addCSourceFiles(.{
+        .root = qhull_dep.path("src/libqhull_r"),
+        .files = &.{
+            "libqhull_r.c",
+            "geom_r.c",
+            "geom2_r.c",
+            "global_r.c",
+            "io_r.c",
+            "mem_r.c",
+            "merge_r.c",
+            "poly_r.c",
+            "poly2_r.c",
+            "random_r.c",
+            "rboxlib_r.c",
+            "stat_r.c",
+            "user_r.c",
+            "usermem_r.c",
+            "userprintf_r.c",
+        },
+    });
+
+    mod.addIncludePath(qhull_dep.path("src"));
+    mod.addIncludePath(qhull_dep.path("src/libqhull_r"));
 }
 
 const MujocoHeaders = [_][]const u8{
@@ -82,13 +198,18 @@ const MujocoHeaders = [_][]const u8{
     "include/mujoco/mujoco.h",
 };
 
+const ModD = struct {
+    mod: *std.Build.Module,
+    dep: *std.Build.Dependency,
+};
+
 const MujocoModule = struct {
     root: []const u8,
     sources: []const []const u8,
 
-    pub fn addToModule(self: *const MujocoModule, mod: *std.Build.Module, dep: *std.Build.Dependency) void {
-        mod.addCSourceFiles(.{
-            .root = dep.path(self.root),
+    pub fn addToModule(self: *const MujocoModule, modD: *const ModD) void {
+        modD.mod.addCSourceFiles(.{
+            .root = modD.dep.path(self.root),
             .files = self.sources,
         });
     }
@@ -97,86 +218,43 @@ const MujocoModule = struct {
 const MujocoEngineSources: MujocoModule = .{
     .root = "src/engine",
     .sources = &[_][]const u8{
-        "engine_array_safety.h",
         "engine_callback.c",
-        "engine_callback.h",
         "engine_collision_box.c",
         "engine_collision_convex.c",
-        "engine_collision_convex.h",
         "engine_collision_driver.c",
-        "engine_collision_driver.h",
         "engine_collision_gjk.c",
-        "engine_collision_gjk.h",
         "engine_collision_primitive.c",
-        "engine_collision_primitive.h",
         "engine_collision_sdf.c",
-        "engine_collision_sdf.h",
         "engine_core_constraint.c",
-        "engine_core_constraint.h",
         "engine_core_util.c",
-        "engine_core_util.h",
         "engine_core_smooth.c",
-        "engine_core_smooth.h",
         "engine_crossplatform.cc",
-        "engine_crossplatform.h",
         "engine_derivative.c",
-        "engine_derivative.h",
         "engine_derivative_fd.c",
-        "engine_derivative_fd.h",
         "engine_forward.c",
-        "engine_forward.h",
-        "engine_global_table.h",
         "engine_inverse.c",
-        "engine_inverse.h",
         "engine_init.c",
-        "engine_init.h",
-        "engine_inline.h",
         "engine_island.c",
-        "engine_island.h",
         "engine_io.c",
-        "engine_io.h",
-        "engine_macro.h",
         "engine_memory.c",
-        "engine_memory.h",
         "engine_name.c",
-        "engine_name.h",
         "engine_passive.c",
-        "engine_passive.h",
         "engine_plugin.cc",
-        "engine_plugin.h",
         "engine_print.c",
-        "engine_print.h",
         "engine_ray.c",
-        "engine_ray.h",
         "engine_sensor.c",
-        "engine_sensor.h",
         "engine_setconst.c",
-        "engine_setconst.h",
         "engine_sleep.c",
-        "engine_sleep.h",
         "engine_solver.c",
-        "engine_solver.h",
-        "engine_sort.h",
         "engine_support.c",
-        "engine_support.h",
         "engine_util_blas.c",
-        "engine_util_blas.h",
         "engine_util_errmem.c",
-        "engine_util_errmem.h",
         "engine_util_misc.c",
-        "engine_util_misc.h",
         "engine_util_solve.c",
-        "engine_util_solve.h",
         "engine_util_sparse.c",
-        "engine_util_sparse.h",
-        "engine_util_sparse_avx.h",
         "engine_util_spatial.c",
-        "engine_util_spatial.h",
         "engine_vis_init.c",
-        "engine_vis_init.h",
         "engine_vis_interact.c",
-        "engine_vis_interact.h",
         "engine_vis_visualize.c",
-        "engine_vis_visualize.h",
     },
 };
