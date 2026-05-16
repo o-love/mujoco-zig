@@ -28,10 +28,8 @@
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
             zigpkgs."0.16.0"
-	    mujoco
           ];
         };
       }
     );
 }
-
