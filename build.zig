@@ -35,6 +35,33 @@ pub fn build(b: *std.Build) void {
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
+
+    const viewer_step = b.step("viewer", "Build the OpenGL viewer example");
+    const examples_step = b.step("examples", "Build all examples");
+    examples_step.dependOn(viewer_step);
+
+    if (b.lazyDependency("raylib_zig", .{
+        .target = target,
+        .optimize = optimize,
+    })) |raylib_dep| {
+        const viewer_exe = b.addExecutable(.{
+            .name = "opengl-viewer",
+            .root_module = b.createModule(.{
+                .root_source_file = b.path("examples/opengl-viewer/viewer.zig"),
+                .target = target,
+                .optimize = optimize,
+            }),
+        });
+        viewer_exe.root_module.addImport("mujoco_zig", mod);
+        viewer_exe.root_module.addImport("raylib", raylib_dep.module("raylib"));
+
+        const install_viewer = b.addInstallArtifact(viewer_exe, .{});
+        viewer_step.dependOn(&install_viewer.step);
+
+        const run_viewer = b.addRunArtifact(viewer_exe);
+        const run_viewer_step = b.step("run-viewer", "Run the OpenGL viewer example");
+        run_viewer_step.dependOn(&run_viewer.step);
+    }
 }
 
 pub fn buildMujoco(
