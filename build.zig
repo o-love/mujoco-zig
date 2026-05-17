@@ -58,6 +58,15 @@ pub fn build(b: *std.Build) void {
         const install_viewer = b.addInstallArtifact(viewer_exe, .{});
         viewer_step.dependOn(&install_viewer.step);
 
+        if (target.result.os.tag == .linux) {
+            viewer_exe.root_module.linkSystemLibrary("X11", .{});
+            viewer_exe.root_module.linkSystemLibrary("Xrandr", .{});
+            viewer_exe.root_module.linkSystemLibrary("Xinerama", .{});
+            viewer_exe.root_module.linkSystemLibrary("Xi", .{});
+            viewer_exe.root_module.linkSystemLibrary("Xcursor", .{});
+            viewer_exe.root_module.linkSystemLibrary("GL", .{});
+        }
+
         const run_viewer = b.addRunArtifact(viewer_exe);
         const run_viewer_step = b.step("run-viewer", "Run the OpenGL viewer example");
         run_viewer_step.dependOn(&run_viewer.step);

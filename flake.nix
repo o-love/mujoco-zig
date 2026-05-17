@@ -28,7 +28,28 @@
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [
             zigpkgs."0.16.0"
+            pkg-config
           ];
+
+          buildInputs = with pkgs; [
+            libGL
+            xorg.libX11
+            xorg.libXrandr
+            xorg.libXinerama
+            xorg.libXi
+            xorg.libXcursor
+          ];
+
+          shellHook = ''
+            export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [
+              pkgs.libGL
+              pkgs.xorg.libX11
+              pkgs.xorg.libXrandr
+              pkgs.xorg.libXinerama
+              pkgs.xorg.libXi
+              pkgs.xorg.libXcursor
+            ]}
+          '';
         };
       }
     );
