@@ -32,6 +32,10 @@
             .url = "https://github.com/tinyobjloader/tinyobjloader/archive/1421a10d6ed9742f5b2c1766d22faa6cfbc56248.tar.gz",
             .hash = "N-V-__8AANoTIgB-uTKjKCpPDXkUOw4zH9pPPlc64fUsqWob",
         },
+        .marchingcubecpp = .{
+            .url = "https://github.com/aparis69/MarchingCubeCpp/archive/f03a1b3ec29b1d7d865691ca8aea4f1eb2c2873d.tar.gz",
+            .hash = "N-V-__8AANhWAAAMWQ8q3Klegr7l67evm7FUyzkiEqIOSkwi",
+        },
     },
 
     .paths = .{

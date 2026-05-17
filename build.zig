@@ -43,6 +43,9 @@ pub fn buildMujoco(
     optimize: std.builtin.OptimizeMode,
     mujoco_dep: *std.Build.Dependency,
 ) *std.Build.Step.Compile {
+    // TODO: Things to turn into options
+    const is_wasm = false;
+
     const mujoco_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -62,6 +65,7 @@ pub fn buildMujoco(
     });
 
     mujoco_mod.addIncludePath(mujoco_dep.path("include"));
+    mujoco_mod.addIncludePath(mujoco_dep.path("plugin"));
     mujoco_mod.addIncludePath(mujoco_dep.path("src"));
 
     for (MujocoHeaders) |header| {
@@ -70,10 +74,19 @@ pub fn buildMujoco(
 
     addMujocoDependencies(mujoco_mod, b);
 
-    MujocoEngineSources.addToModule(&mujoco_modD);
-    MujocoXmlSources.addToModule(&mujoco_modD);
-    MujocoUserCppSources.addToModule(&mujoco_modD);
-    MujocoUserCSources.addToModule(&mujoco_modD);
+    mujoco_modD.addToModule(&.{
+        MujocoEngineSources,
+        MujocoXmlSources,
+        MujocoUserCppSources,
+        MujocoUserCSources,
+        MujocoThreadSources,
+        MujocoClassicRenderCSources,
+        MujocoClassicRenderCppSources,
+    });
+
+    if (!is_wasm) {
+        mujoco_modD.addToModule(&.{});
+    }
 
     return mujoco_lib;
 }
@@ -84,11 +97,17 @@ fn addMujocoDependencies(mod: *std.Build.Module, b: *std.Build) void {
     addLodePng(mod, b);
     addTinyObjLoader(mod, b);
     addQhull(mod, b);
+    addMarchingCubeCpp(mod, b);
 
     mod.addCMacro("_GNU_SOURCE", "1");
     mod.addCMacro("CCD_STATIC_DEFINE", "1");
     mod.addCMacro("MUJOCO_DLL_EXPORTS", "1");
     mod.addCMacro("MC_IMPLEM_ENABLE", "1");
+}
+
+fn addMarchingCubeCpp(mod: *std.Build.Module, b: *std.Build) void {
+    const marchingcubecpp_dep = b.dependency("marchingcubecpp", .{});
+    mod.addIncludePath(marchingcubecpp_dep.path("."));
 }
 
 fn addCcd(mod: *std.Build.Module, b: *std.Build) void {
@@ -170,6 +189,7 @@ fn addQhull(mod: *std.Build.Module, b: *std.Build) void {
             "merge_r.c",
             "poly_r.c",
             "poly2_r.c",
+            "qset_r.c",
             "random_r.c",
             "rboxlib_r.c",
             "stat_r.c",
@@ -203,6 +223,12 @@ const MujocoHeaders = [_][]const u8{
 const ModD = struct {
     mod: *std.Build.Module,
     dep: *std.Build.Dependency,
+
+    pub fn addToModule(self: *const ModD, modules: []const MujocoModule) void {
+        for (modules) |mod| {
+            mod.addToModule(self);
+        }
+    }
 };
 
 const MujocoModule = struct {
@@ -305,5 +331,36 @@ const MujocoUserCSources: MujocoModule = .{
     .root = "src/user",
     .sources = &.{
         "user_init.c",
+    },
+};
+
+const MujocoThreadSources: MujocoModule = .{
+    .root = "src/thread",
+    .sources = &.{
+        "thread_pool.cc",
+        "thread_task.cc",
+    },
+    .flags = &.{
+        "-std=c++20",
+    },
+};
+
+const MujocoClassicRenderCppSources: MujocoModule = .{
+    .root = "src/render/classic",
+    .sources = &.{
+        "glad/loader.cc",
+    },
+    .flags = &.{
+        "-std=c++20",
+    },
+};
+const MujocoClassicRenderCSources: MujocoModule = .{
+    .root = "src/render/classic",
+    .sources = &.{
+        "glad/glad.c",
+        "render_context.c",
+        "render_gl2.c",
+        "render_gl3.c",
+        "render_util.c",
     },
 };
