@@ -2,5 +2,7 @@
 zig-out/
 zig-pkg/
 
+.direnv/
+
 .idea/
 **/.DS_Store
