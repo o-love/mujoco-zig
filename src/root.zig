@@ -6,7 +6,7 @@ pub const MjData = @import("MjData.zig");
 
 test "ffi: load hello mujoco model" {
     var buffer: [1024]u8 = undefined;
-    const model = ffi.mj_loadXML("hello.xml", null, &buffer, 1000);
+    const model = ffi.mj_loadXML("assets/hello.xml", null, &buffer, 1000);
     defer ffi.mj_deleteModel(model);
 
     const data = ffi.mj_makeData(model);
@@ -20,7 +20,7 @@ test "ffi: load hello mujoco model" {
 test "load hello mujoco model" {
     const testing = std.testing;
 
-    const model: MjModel = try .from_xml("hello.xml", testing.allocator);
+    const model: MjModel = try .from_xml("assets/hello.xml", testing.allocator);
     defer model.deinit();
 
     var data: MjData = try model.data();
