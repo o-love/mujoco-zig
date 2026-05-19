@@ -17,10 +17,7 @@ pub fn main(init: std.process.Init) !void {
 
     std.log.info("{d} env vars", .{init.environ_map.count()});
 
-    const screenWidth = 800;
-    const screenHeight = 450;
-
-    rl.initWindow(screenWidth, screenHeight, "mujoco-zig viewer example");
+    rl.initWindow(1200, 720, "mujoco-zig viewer example");
     defer rl.closeWindow();
 
     rl.setTargetFPS(60);

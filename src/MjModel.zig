@@ -34,7 +34,7 @@ pub fn from_xml(path: []const u8, gpa: Allocator) !@This() {
     return from_raw(raw_model);
 }
 
-pub fn deinit(self: *const @This()) void {
+pub fn deinit(self: *@This()) void {
     ffi.mj_deleteModel(self.model);
 }
 

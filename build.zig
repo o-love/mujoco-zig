@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
 
     const mujoco_lib = buildMujoco(b, target, optimize, mujoco_dep);
 
-    const mod = b.addModule("mujoco_zig", .{
+    const module_options: std.Build.Module.CreateOptions = .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
@@ -25,51 +25,74 @@ pub fn build(b: *std.Build) void {
                 .module = c_deps.createModule(),
             },
         },
-    });
+    };
+    const mod = b.addModule("mujoco_zig", module_options);
     mod.linkLibrary(mujoco_lib);
 
+    const test_mod = b.createModule(module_options);
+    test_mod.linkLibrary(mujoco_lib);
+    addRaylib(b, test_mod, target, optimize);
+
     const mod_tests = b.addTest(.{
-        .root_module = mod,
+        .root_module = test_mod,
     });
     const run_mod_tests = b.addRunArtifact(mod_tests);
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
 
+    buildViewer(b, mod, target, optimize);
+}
+
+fn buildViewer(
+    b: *std.Build,
+    mod: *std.Build.Module,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) void {
     const viewer_step = b.step("viewer", "Build the OpenGL viewer example");
     const examples_step = b.step("examples", "Build all examples");
     examples_step.dependOn(viewer_step);
 
+    const viewer_exe = b.addExecutable(.{
+        .name = "opengl-viewer",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("examples/opengl-viewer/viewer.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    viewer_exe.root_module.addImport("mujoco_zig", mod);
+    addRaylib(b, viewer_exe.root_module, target, optimize);
+
+    const install_viewer = b.addInstallArtifact(viewer_exe, .{});
+    viewer_step.dependOn(&install_viewer.step);
+
+    const run_viewer = b.addRunArtifact(viewer_exe);
+    const run_viewer_step = b.step("run-viewer", "Run the OpenGL viewer example");
+    run_viewer_step.dependOn(&run_viewer.step);
+}
+
+fn addRaylib(
+    b: *std.Build,
+    mod: *std.Build.Module,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) void {
     if (b.lazyDependency("raylib_zig", .{
         .target = target,
         .optimize = optimize,
     })) |raylib_dep| {
-        const viewer_exe = b.addExecutable(.{
-            .name = "opengl-viewer",
-            .root_module = b.createModule(.{
-                .root_source_file = b.path("examples/opengl-viewer/viewer.zig"),
-                .target = target,
-                .optimize = optimize,
-            }),
-        });
-        viewer_exe.root_module.addImport("mujoco_zig", mod);
-        viewer_exe.root_module.addImport("raylib", raylib_dep.module("raylib"));
-
-        const install_viewer = b.addInstallArtifact(viewer_exe, .{});
-        viewer_step.dependOn(&install_viewer.step);
+        mod.addImport("raylib", raylib_dep.module("raylib"));
 
         if (target.result.os.tag == .linux) {
-            viewer_exe.root_module.linkSystemLibrary("X11", .{});
-            viewer_exe.root_module.linkSystemLibrary("Xrandr", .{});
-            viewer_exe.root_module.linkSystemLibrary("Xinerama", .{});
-            viewer_exe.root_module.linkSystemLibrary("Xi", .{});
-            viewer_exe.root_module.linkSystemLibrary("Xcursor", .{});
-            viewer_exe.root_module.linkSystemLibrary("GL", .{});
+            mod.linkSystemLibrary("X11", .{});
+            mod.linkSystemLibrary("Xrandr", .{});
+            mod.linkSystemLibrary("Xinerama", .{});
+            mod.linkSystemLibrary("Xi", .{});
+            mod.linkSystemLibrary("Xcursor", .{});
+            mod.linkSystemLibrary("GL", .{});
         }
-
-        const run_viewer = b.addRunArtifact(viewer_exe);
-        const run_viewer_step = b.step("run-viewer", "Run the OpenGL viewer example");
-        run_viewer_step.dependOn(&run_viewer.step);
     }
 }
 

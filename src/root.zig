@@ -3,10 +3,13 @@ pub const ffi = @import("c");
 
 pub const MjModel = @import("MjModel.zig");
 pub const MjData = @import("MjData.zig");
+pub const log = @import("log.zig");
 
 test "ffi: load hello mujoco model" {
+    const model_path = @import("test_utils.zig").BasicModelPath;
+
     var buffer: [1024]u8 = undefined;
-    const model = ffi.mj_loadXML("assets/hello.xml", null, &buffer, 1000);
+    const model = ffi.mj_loadXML(model_path, null, &buffer, 1000);
     defer ffi.mj_deleteModel(model);
 
     const data = ffi.mj_makeData(model);
@@ -19,8 +22,9 @@ test "ffi: load hello mujoco model" {
 
 test "load hello mujoco model" {
     const testing = std.testing;
+    const model_path = @import("test_utils.zig").BasicModelPath;
 
-    const model: MjModel = try .from_xml("assets/hello.xml", testing.allocator);
+    var model: MjModel = try .from_xml(model_path, testing.allocator);
     defer model.deinit();
 
     var data: MjData = try model.data();
@@ -35,4 +39,8 @@ test {
     _ = @import("MjData.zig");
     _ = @import("MjModel.zig");
     _ = @import("log.zig");
+    _ = @import("visualization/MjrContext.zig");
+    _ = @import("visualization/MjvCamera.zig");
+    _ = @import("visualization/MjvOption.zig");
+    _ = @import("visualization/MjvScene.zig");
 }
