@@ -1,5 +1,6 @@
 const std = @import("std");
 const mujoco_zig = @import("../root.zig");
+const log = mujoco_zig.log;
 
 const ffi = mujoco_zig.ffi;
 
@@ -25,15 +26,20 @@ pub fn deinit(self: *@This()) void {
 
 test "init and deinit" {
     const testing = std.testing;
-    const rl = @import("raylib");
     const model_path = @import("../test_utils.zig").BasicModelPath;
 
-    rl.initWindow(1200, 720, "mujoco-zig viewer example");
-    defer rl.closeWindow();
+    const glfw = @import("zglfw");
 
-    rl.setTargetFPS(60);
-    rl.beginDrawing();
-    defer rl.endDrawing();
+    try glfw.init();
+    defer glfw.terminate();
+    std.debug.print("GLFW Init Succeeded.\n", .{});
+
+    const window: *glfw.Window = try glfw.createWindow(800, 640, "Hello World", null, null);
+    defer glfw.destroyWindow(window);
+
+    glfw.makeContextCurrent(window);
+
+    log.init();
 
     std.debug.print("Building model\n", .{});
     var model: MjModel = try .from_xml(model_path, testing.allocator);

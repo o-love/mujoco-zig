@@ -1,9 +1,12 @@
 const std = @import("std");
 pub const ffi = @import("c");
+const build_options = @import("build_options");
 
 pub const MjModel = @import("MjModel.zig");
 pub const MjData = @import("MjData.zig");
 pub const log = @import("log.zig");
+
+pub const MjrContext = if (build_options.renderer) @import("visualization/MjrContext.zig") else @compileError("MjrContext requires the 'renderer' build option");
 
 test "ffi: load hello mujoco model" {
     const model_path = @import("test_utils.zig").BasicModelPath;
@@ -39,8 +42,11 @@ test {
     _ = @import("MjData.zig");
     _ = @import("MjModel.zig");
     _ = @import("log.zig");
-    _ = @import("visualization/MjrContext.zig");
     _ = @import("visualization/MjvCamera.zig");
     _ = @import("visualization/MjvOption.zig");
     _ = @import("visualization/MjvScene.zig");
+
+    if (build_options.renderer) {
+        _ = @import("visualization/MjrContext.zig");
+    }
 }

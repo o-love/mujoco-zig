@@ -1,5 +1,5 @@
 const std = @import("std");
-const rl = @import("raylib");
+const glfw = @import("zglfw");
 
 pub fn main(init: std.process.Init) !void {
     const gpa = init.gpa;
@@ -17,25 +17,18 @@ pub fn main(init: std.process.Init) !void {
 
     std.log.info("{d} env vars", .{init.environ_map.count()});
 
-    rl.initWindow(1200, 720, "mujoco-zig viewer example");
-    defer rl.closeWindow();
+    try glfw.init();
+    defer glfw.terminate();
+    std.debug.print("GLFW Init Succeeded.\n", .{});
 
-    rl.setTargetFPS(60);
+    const window: *glfw.Window = try glfw.createWindow(800, 640, "Hello World", null, null);
+    defer glfw.destroyWindow(window);
 
-    while (!rl.windowShouldClose()) { // Detect window close button or ESC key
-        // Update
-        //----------------------------------------------------------------------------------
-        // TODO: Update your variables here
-        //----------------------------------------------------------------------------------
+    while (!glfw.windowShouldClose(window)) {
+        if (glfw.getKey(window, glfw.KeyEscape) == glfw.Press) {
+            glfw.setWindowShouldClose(window, true);
+        }
 
-        // Draw
-        //----------------------------------------------------------------------------------
-        rl.beginDrawing();
-        defer rl.endDrawing();
-
-        rl.clearBackground(.white);
-
-        rl.drawText("Congrats! You created your first window!", 190, 200, 20, .light_gray);
-        //----------------------------------------------------------------------------------
+        glfw.pollEvents();
     }
 }

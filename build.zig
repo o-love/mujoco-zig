@@ -4,6 +4,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const renderer = b.option(bool, "renderer", "Enable the renderer (MjrContext) and link GLFW") orelse false;
+
     const mujoco_dep = b.dependency("mujoco", .{});
 
     const c_deps = b.addTranslateC(.{
@@ -15,6 +17,9 @@ pub fn build(b: *std.Build) void {
 
     const mujoco_lib = buildMujoco(b, target, optimize, mujoco_dep);
 
+    const build_options = b.addOptions();
+    build_options.addOption(bool, "renderer", renderer);
+
     const module_options: std.Build.Module.CreateOptions = .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
@@ -24,17 +29,21 @@ pub fn build(b: *std.Build) void {
                 .name = "c",
                 .module = c_deps.createModule(),
             },
+            .{
+                .name = "build_options",
+                .module = build_options.createModule(),
+            },
         },
     };
     const mod = b.addModule("mujoco_zig", module_options);
     mod.linkLibrary(mujoco_lib);
 
-    const test_mod = b.createModule(module_options);
-    test_mod.linkLibrary(mujoco_lib);
-    addRaylib(b, test_mod, target, optimize);
+    if (renderer) {
+        addGlfw(b, mod, target, optimize);
+    }
 
     const mod_tests = b.addTest(.{
-        .root_module = test_mod,
+        .root_module = mod,
     });
     const run_mod_tests = b.addRunArtifact(mod_tests);
 
@@ -63,7 +72,7 @@ fn buildViewer(
         }),
     });
     viewer_exe.root_module.addImport("mujoco_zig", mod);
-    addRaylib(b, viewer_exe.root_module, target, optimize);
+    addGlfw(b, viewer_exe.root_module, target, optimize);
 
     const install_viewer = b.addInstallArtifact(viewer_exe, .{});
     viewer_step.dependOn(&install_viewer.step);
@@ -73,26 +82,25 @@ fn buildViewer(
     run_viewer_step.dependOn(&run_viewer.step);
 }
 
-fn addRaylib(
+fn addGlfw(
     b: *std.Build,
     mod: *std.Build.Module,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 ) void {
-    if (b.lazyDependency("raylib_zig", .{
+    const zglfw_dep = b.dependency("zglfw", .{});
+    const zglfw_mod = b.createModule(.{
+        .root_source_file = zglfw_dep.path("src/glfw.zig"),
         .target = target,
         .optimize = optimize,
-    })) |raylib_dep| {
-        mod.addImport("raylib", raylib_dep.module("raylib"));
+    });
 
-        if (target.result.os.tag == .linux) {
-            mod.linkSystemLibrary("X11", .{});
-            mod.linkSystemLibrary("Xrandr", .{});
-            mod.linkSystemLibrary("Xinerama", .{});
-            mod.linkSystemLibrary("Xi", .{});
-            mod.linkSystemLibrary("Xcursor", .{});
-            mod.linkSystemLibrary("GL", .{});
-        }
+    mod.addImport("zglfw", zglfw_mod);
+    mod.linkSystemLibrary("glfw", .{});
+
+    if (target.result.os.tag == .macos) {
+        mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+        mod.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
     }
 }
 

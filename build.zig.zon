@@ -8,11 +8,6 @@
             .url = "git+https://github.com/google-deepmind/mujoco#3.8.0",
             .hash = "N-V-__8AAO91UwYuuoaPliI97gcqRRZIX46xOnXR2yRkmYUY",
         },
-        .raylib_zig = .{
-            .url = "git+https://github.com/raylib-zig/raylib-zig?ref=devel#da396f71372a5e31c365798f88b57afe56bc5c01",
-            .hash = "raylib_zig-6.0.0-KE8REP50BQAnAeQmpP4qVDsFgX5yKKnjnkAn6RnYUjR7",
-            .lazy = true,
-        },
         .ccd = .{
             .url = "https://github.com/danfis/libccd/archive/7931e764a19ef6b21b443376c699bbc9c6d4fba8.tar.gz",
             .hash = "N-V-__8AADIlBQC4ogMsRGuDQaxPkdleYYgWtJQrqaf7hYt5",
@@ -36,6 +31,10 @@
         .marchingcubecpp = .{
             .url = "https://github.com/aparis69/MarchingCubeCpp/archive/f03a1b3ec29b1d7d865691ca8aea4f1eb2c2873d.tar.gz",
             .hash = "N-V-__8AANhWAAAMWQ8q3Klegr7l67evm7FUyzkiEqIOSkwi",
+        },
+        .zglfw = .{
+            .url = "git+https://github.com/IridescenceTech/zglfw#188d33b5abdb24768905dec1dad6b3ffd60fc324",
+            .hash = "zglfw-0.1.0-BghZXaTUAAAkCOlD_2akK4k1zIzo6HIXelVZu39yr_MO",
         },
     },
 
