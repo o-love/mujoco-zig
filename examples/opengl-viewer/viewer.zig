@@ -1,5 +1,6 @@
 const std = @import("std");
 const glfw = @import("zglfw");
+const mujoco_zig = @import("mujoco_zig");
 
 pub fn main(init: std.process.Init) !void {
     const gpa = init.gpa;
@@ -11,9 +12,13 @@ pub fn main(init: std.process.Init) !void {
     try std.Io.File.stdout().writeStreamingAll(io, "Hello, world!\n");
 
     const args = try init.minimal.args.toSlice(init.arena.allocator());
-    for (args, 0..) |arg, i| {
-        std.log.info("arg[{d}] = {s}", .{ i, arg });
+
+    if (args.len < 2) {
+        try std.Io.File.stdout().writeStreamingAll(io, "Usage: ./opengl-viewer <model_path>\n");
+        return;
     }
+
+    const model_path = args[1];
 
     std.log.info("{d} env vars", .{init.environ_map.count()});
 
