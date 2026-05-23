@@ -27,19 +27,24 @@ pub fn deinit(self: *@This()) void {
 test "init and deinit" {
     const testing = std.testing;
     const model_path = @import("../test_utils.zig").BasicModelPath;
+    mujoco_zig.init();
 
     const glfw = @import("zglfw");
 
     try glfw.init();
-    defer glfw.terminate();
-    std.debug.print("GLFW Init Succeeded.\n", .{});
+    std.debug.print("glfw.init() returned successfully.\n", .{});
+
+    defer {
+        std.debug.print("Calling glfw.terminate()...\n", .{});
+        glfw.terminate();
+    }
 
     const window: *glfw.Window = try glfw.createWindow(800, 640, "Hello World", null, null);
     defer glfw.destroyWindow(window);
 
     glfw.makeContextCurrent(window);
-
-    log.init();
+    glfw.swapInterval(1);
+    glfw.swapBuffers(window);
 
     std.debug.print("Building model\n", .{});
     var model: MjModel = try .from_xml(model_path, testing.allocator);
@@ -48,6 +53,9 @@ test "init and deinit" {
     std.debug.print("Building context\n", .{});
     var context: MjrContext = try .init(&model, 200);
     defer context.deinit();
+
+    glfw.pollEvents();
+    glfw.swapBuffers(window);
 
     std.debug.print("Done builing\n", .{});
 }

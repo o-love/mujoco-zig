@@ -32,22 +32,12 @@
           ];
 
           buildInputs = with pkgs; [
-            libGL
-            xorg.libX11
-            xorg.libXrandr
-            xorg.libXinerama
-            xorg.libXi
-            xorg.libXcursor
+            glfw
           ];
 
           shellHook = ''
             export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath [
-              pkgs.libGL
-              pkgs.xorg.libX11
-              pkgs.xorg.libXrandr
-              pkgs.xorg.libXinerama
-              pkgs.xorg.libXi
-              pkgs.xorg.libXcursor
+              pkgs.glfw
             ]}
           '';
         };
