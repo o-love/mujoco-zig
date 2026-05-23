@@ -38,8 +38,14 @@ pub fn build(b: *std.Build) void {
     const mod = b.addModule("mujoco_zig", module_options);
     mod.linkLibrary(mujoco_lib);
 
+    const zglfw_mod = if (renderer) b.createModule(.{
+        .root_source_file = b.dependency("zglfw", .{}).path("src/glfw.zig"),
+        .target = target,
+        .optimize = optimize,
+    }) else null;
+
     if (renderer) {
-        addGlfw(b, mod, target, optimize);
+        addGlfw(mod, zglfw_mod.?);
     }
 
     const mod_tests = b.addTest(.{
@@ -50,7 +56,7 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
 
-    buildViewer(b, mod, target, optimize);
+    buildViewer(b, mod, target, optimize, zglfw_mod);
 }
 
 fn buildViewer(
@@ -58,6 +64,7 @@ fn buildViewer(
     mod: *std.Build.Module,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    zglfw_mod: ?*std.Build.Module,
 ) void {
     const viewer_step = b.step("viewer", "Build the OpenGL viewer example");
     const examples_step = b.step("examples", "Build all examples");
@@ -72,33 +79,29 @@ fn buildViewer(
         }),
     });
     viewer_exe.root_module.addImport("mujoco_zig", mod);
-    addGlfw(b, viewer_exe.root_module, target, optimize);
+    if (zglfw_mod) |z| {
+        addGlfw(viewer_exe.root_module, z);
+    }
 
     const install_viewer = b.addInstallArtifact(viewer_exe, .{});
     viewer_step.dependOn(&install_viewer.step);
 
     const run_viewer = b.addRunArtifact(viewer_exe);
+    if (b.args) |args| {
+        run_viewer.addArgs(args);
+    }
     const run_viewer_step = b.step("run-viewer", "Run the OpenGL viewer example");
     run_viewer_step.dependOn(&run_viewer.step);
 }
 
 fn addGlfw(
-    b: *std.Build,
     mod: *std.Build.Module,
-    target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    zglfw_mod: *std.Build.Module,
 ) void {
-    const zglfw_dep = b.dependency("zglfw", .{});
-    const zglfw_mod = b.createModule(.{
-        .root_source_file = zglfw_dep.path("src/glfw.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
     mod.addImport("zglfw", zglfw_mod);
     mod.linkSystemLibrary("glfw", .{});
 
-    if (target.result.os.tag == .macos) {
+    if (mod.resolved_target.?.result.os.tag == .macos) {
         mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
         mod.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
     }

@@ -2,13 +2,19 @@ const std = @import("std");
 const glfw = @import("zglfw");
 const mujoco_zig = @import("mujoco_zig");
 
+const MjModel = mujoco_zig.MjModel;
+const MjContext = mujoco_zig.MjrContext;
+
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
 
     mujoco_zig.init();
 
+    var arg_it = init.minimal.args.iterate();
+    _ = arg_it.skip();
+    const model_path = arg_it.next() orelse "assets/hello.xml";
+
     try std.Io.File.stdout().writeStreamingAll(io, "Initializing GLFW...\n");
-    std.debug.print("Calling glfw.init()...\n", .{});
 
     try glfw.init();
 
@@ -34,6 +40,14 @@ pub fn main(init: std.process.Init) !void {
     glfw.swapInterval(1);
 
     std.debug.print("Window opened successfully.\n", .{});
+
+    std.debug.print("Building model\n", .{});
+    var model: MjModel = try .from_xml(model_path, init.gpa);
+    defer model.deinit();
+
+    std.debug.print("Building context\n", .{});
+    var context: MjContext = try .init(&model, 200);
+    defer context.deinit();
 
     while (!glfw.windowShouldClose(window)) {
         if (glfw.getKey(window, glfw.KeyEscape) == glfw.Press) {
