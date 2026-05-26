@@ -15,7 +15,7 @@ pub fn init(model: *const MjModel, fontscale: i64) !@This() {
     log.debug("Initializing MjrContext", .{});
 
     ffi.mjr_defaultContext(&context);
-    ffi.mjr_makeContext(model.model, &context, @intCast(fontscale));
+    ffi.mjr_makeContext(model.raw, &context, @intCast(fontscale));
 
     log.debug("Finished initializing MjrContext", .{});
 

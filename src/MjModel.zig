@@ -4,16 +4,17 @@ const mujoco_zig = @import("root.zig");
 const ffi = mujoco_zig.ffi;
 const MjData = mujoco_zig.MjData;
 const Allocator = std.mem.Allocator;
+const enums = mujoco_zig.enums;
 
 const log = @import("log.zig");
 
 const MjModel = @This();
 
-model: *ffi.mjModel,
+raw: *ffi.mjModel,
 
 pub fn from_raw(model: *ffi.mjModel) @This() {
     return .{
-        .model = model,
+        .raw = model,
     };
 }
 
@@ -35,11 +36,11 @@ pub fn from_xml(path: []const u8, gpa: Allocator) !@This() {
 }
 
 pub fn deinit(self: *@This()) void {
-    ffi.mj_deleteModel(self.model);
+    ffi.mj_deleteModel(self.raw);
 }
 
 pub fn data(self: *const @This()) !MjData {
-    const raw_data = ffi.mj_makeData(self.model);
+    const raw_data = ffi.mj_makeData(self.raw);
 
     if (raw_data == null) {
         log.err("Error loading mujoco data", .{});
@@ -47,4 +48,12 @@ pub fn data(self: *const @This()) !MjData {
     }
 
     return MjData.from_raw(raw_data, self);
+}
+
+pub fn size(self: *const @This()) mujoco_zig.mjtSize {
+    return ffi.mj_sizeModel(self.raw);
+}
+
+pub fn stateSize(self: *const @This(), sig: enums.StateFlag) i64 {
+    return ffi.mj_stateSize(self.raw, @intFromEnum(sig));
 }

@@ -15,13 +15,11 @@ pub fn init(model: *const MjModel, maxgeom: i32) !@This() {
     log.debug("Initializing mjvScene", .{});
 
     ffi.mjv_defaultScene(&scene);
-    ffi.mjv_makeScene(model.model, &scene, maxgeom);
+    ffi.mjv_makeScene(model.raw, &scene, maxgeom);
 
     log.debug("Finished initializing MjvScene", .{});
 
-    return .{
-        .raw = scene
-    };
+    return .{ .raw = scene };
 }
 
 pub fn deinit(self: *@This()) void {
