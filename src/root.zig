@@ -5,7 +5,13 @@ const build_options = @import("build_options");
 pub const MjModel = @import("MjModel.zig");
 pub const MjData = @import("MjData.zig");
 
-pub const MjrContext = if (build_options.renderer) @import("visualization/MjrContext.zig") else @compileError("MjrContext requires the 'renderer' build option");
+// Visualization
+pub const MjvCamera = @import("visualization/MjvCamera.zig");
+pub const MjvOption = @import("visualization/MjvOption.zig");
+pub const MjvScene = @import("visualization/MjvScene.zig");
+
+// Opengl
+pub const MjrContext = if (build_options.opengl) @import("visualization/opengl/MjrContext.zig") else @compileError("MjrContext requires the 'opengl' build option");
 
 pub const init = @import("init.zig").init;
 
@@ -47,7 +53,7 @@ test {
     _ = @import("visualization/MjvOption.zig");
     _ = @import("visualization/MjvScene.zig");
 
-    if (build_options.renderer) {
-        _ = @import("visualization/MjrContext.zig");
+    if (build_options.opengl) {
+        _ = @import("visualization/opengl/MjrContext.zig");
     }
 }

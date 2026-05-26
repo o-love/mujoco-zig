@@ -22,7 +22,7 @@ pub fn init() void {
     ffi.mju_user_error = user_error_callback;
     ffi.mju_user_warning = user_warning_callback;
 
-    if (build_options.renderer) {
+    if (build_options.opengl) {
         const glfw = @import("zglfw");
 
         _ = glfw.setErrorCallback(struct {

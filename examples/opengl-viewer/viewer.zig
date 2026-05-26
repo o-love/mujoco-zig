@@ -3,7 +3,8 @@ const glfw = @import("zglfw");
 const mujoco_zig = @import("mujoco_zig");
 
 const MjModel = mujoco_zig.MjModel;
-const MjContext = mujoco_zig.MjrContext;
+const MjrContext = mujoco_zig.MjrContext;
+const MjvScene = mujoco_zig.MjvScene;
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
@@ -45,8 +46,12 @@ pub fn main(init: std.process.Init) !void {
     var model: MjModel = try .from_xml(model_path, init.gpa);
     defer model.deinit();
 
-    std.debug.print("Building context\n", .{});
-    var context: MjContext = try .init(&model, 200);
+    std.debug.print("Building context and scene\n", .{});
+
+    var scene: MjvScene = try .init(&model, 1000);
+    defer scene.deinit();
+
+    var context: MjrContext = try .init(&model, 200);
     defer context.deinit();
 
     while (!glfw.windowShouldClose(window)) {

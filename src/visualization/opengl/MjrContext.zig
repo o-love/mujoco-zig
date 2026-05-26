@@ -1,6 +1,6 @@
 const std = @import("std");
-const mujoco_zig = @import("../root.zig");
-const log = mujoco_zig.log;
+const mujoco_zig = @import("../../root.zig");
+const log = @import("../../log.zig");
 
 const ffi = mujoco_zig.ffi;
 
@@ -12,8 +12,12 @@ raw: ffi.mjrContext,
 pub fn init(model: *const MjModel, fontscale: i64) !@This() {
     var context: ffi.mjrContext = undefined;
 
+    log.debug("Initializing MjrContext", .{});
+
     ffi.mjr_defaultContext(&context);
     ffi.mjr_makeContext(model.model, &context, @intCast(fontscale));
+
+    log.debug("Finished initializing MjrContext", .{});
 
     return .{
         .raw = context,
@@ -26,16 +30,14 @@ pub fn deinit(self: *@This()) void {
 
 test "init and deinit" {
     const testing = std.testing;
-    const model_path = @import("../test_utils.zig").BasicModelPath;
+    const model_path = @import("../../test_utils.zig").BasicModelPath;
     mujoco_zig.init();
 
     const glfw = @import("zglfw");
 
     try glfw.init();
-    std.debug.print("glfw.init() returned successfully.\n", .{});
 
     defer {
-        std.debug.print("Calling glfw.terminate()...\n", .{});
         glfw.terminate();
     }
 
@@ -46,16 +48,12 @@ test "init and deinit" {
     glfw.swapInterval(1);
     glfw.swapBuffers(window);
 
-    std.debug.print("Building model\n", .{});
     var model: MjModel = try .from_xml(model_path, testing.allocator);
     defer model.deinit();
 
-    std.debug.print("Building context\n", .{});
     var context: MjrContext = try .init(&model, 200);
     defer context.deinit();
 
     glfw.pollEvents();
     glfw.swapBuffers(window);
-
-    std.debug.print("Done builing\n", .{});
 }
