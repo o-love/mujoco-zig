@@ -3,6 +3,7 @@ const mujoco_zig = @import("root.zig");
 
 const ffi = mujoco_zig.ffi;
 const MjData = mujoco_zig.MjData;
+const MjVFS = mujoco_zig.MjVFS;
 const Allocator = std.mem.Allocator;
 const enums = mujoco_zig.enums;
 
@@ -12,30 +13,47 @@ const MjModel = @This();
 
 raw: *ffi.mjModel,
 
-pub fn from_raw(model: *ffi.mjModel) @This() {
-    return .{
-        .raw = model,
-    };
-}
-
-pub fn from_xml(path: []const u8, gpa: Allocator) !@This() {
+pub fn fromXml(gpa: Allocator, path: []const u8) !@This() {
     const c_path = try gpa.dupeSentinel(u8, path, 0);
     defer gpa.free(c_path);
 
+    return load(c_path, null);
+}
+
+pub fn fromXmlZ(path: [:0]const u8) !@This() {
+    return load(path, null);
+}
+
+pub fn fromXmlVfs(gpa: Allocator, path: []const u8, vfs: *const MjVFS) !@This() {
+    const c_path = try gpa.dupeSentinel(u8, path, 0);
+    defer gpa.free(c_path);
+
+    return load(c_path, vfs);
+}
+
+pub fn fromXmlVfsZ(path: [:0]const u8, vfs: *const MjVFS) !@This() {
+    return load(path, vfs);
+}
+
+fn load(c_path: [:0]const u8, vfs: ?*const MjVFS) !@This() {
     const buf_size = 1000;
     var err_buffer: [buf_size:0]u8 = undefined;
 
-    const raw_model = ffi.mj_loadXML(c_path, null, &err_buffer, 1000);
+    const raw_vfs: ?*const ffi.mjVFS = if (vfs) |v| &v.raw else null;
+
+    const raw_model = ffi.mj_loadXML(c_path, raw_vfs, &err_buffer, 1000);
 
     if (raw_model == null) {
         log.err("Error loading mujoco model from xml: {s}", .{err_buffer});
         return error.LoadingModel;
     }
 
-    return from_raw(raw_model);
+    return .{
+        .raw = raw_model,
+    };
 }
 
-pub fn deinit(self: *@This()) void {
+pub fn deinit(self: *const @This()) void {
     ffi.mj_deleteModel(self.raw);
 }
 

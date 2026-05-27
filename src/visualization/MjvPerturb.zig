@@ -42,7 +42,7 @@ test "init MjvPerturb" {
     const model_path = @import("../test_utils.zig").BasicModelPath;
     mujoco_zig.init();
 
-    var model: MjModel = try .from_xml(model_path, testing.allocator);
+    var model: MjModel = try .fromXml(testing.allocator, model_path);
     defer model.deinit();
 
     var data: MjData = try model.data();

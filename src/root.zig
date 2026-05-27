@@ -5,6 +5,9 @@ const build_options = @import("build_options");
 pub const MjModel = @import("MjModel.zig");
 pub const MjData = @import("MjData.zig");
 
+// Auxiliary
+pub const MjVFS = @import("MjVFS.zig");
+
 // Visualization
 pub const MjvCamera = @import("visualization/MjvCamera.zig");
 pub const MjvOption = @import("visualization/MjvOption.zig");
@@ -99,6 +102,7 @@ pub const init = @import("init.zig").init;
 test {
     _ = @import("MjData.zig");
     _ = @import("MjModel.zig");
+    _ = @import("MjVFS.zig");
     _ = @import("log.zig");
     _ = @import("enums.zig");
     _ = @import("visualization/MjvCamera.zig");
