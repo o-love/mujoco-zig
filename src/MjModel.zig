@@ -50,7 +50,7 @@ pub fn data(self: *const @This()) !MjData {
     return MjData.from_raw(raw_data, self);
 }
 
-pub fn size(self: *const @This()) mujoco_zig.mjtSize {
+pub fn size(self: *const @This()) mujoco_zig.MjtSize {
     return ffi.mj_sizeModel(self.raw);
 }
 
