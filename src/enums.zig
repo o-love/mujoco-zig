@@ -129,7 +129,7 @@ pub const enums = struct {
     pub const LimitedType = mEnum("mjLIMITED_");
     pub const AlignFreeJoints = mEnum("mjALIGNFREE_");
     pub const InertiaFromGeom = mEnum("mjINERTIAFROMGEOM_");
-    pub const Orientation = mEnum("mjORIENTATION");
+    pub const Orientation = mEnum("mjORIENTATION_");
     pub const MeshInertiaType = mEnum("mjMESH_INERTIA_");
     pub const BuiltinMeshType = mEnum("mjMESH_BUILTIN_");
 
