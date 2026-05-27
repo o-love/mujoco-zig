@@ -9,6 +9,7 @@ pub const MjData = @import("MjData.zig");
 pub const MjvCamera = @import("visualization/MjvCamera.zig");
 pub const MjvOption = @import("visualization/MjvOption.zig");
 pub const MjvScene = @import("visualization/MjvScene.zig");
+pub const MjvPerturb = @import("visualization/MjvPerturb.zig");
 
 // Opengl
 pub const MjrContext = if (build_options.opengl) @import("visualization/opengl/MjrContext.zig") else @compileError("MjrContext requires the 'opengl' build option");
@@ -103,6 +104,7 @@ test {
     _ = @import("visualization/MjvCamera.zig");
     _ = @import("visualization/MjvOption.zig");
     _ = @import("visualization/MjvScene.zig");
+    _ = @import("visualization/MjvPerturb.zig");
 
     if (build_options.opengl) {
         _ = @import("visualization/opengl/MjrContext.zig");

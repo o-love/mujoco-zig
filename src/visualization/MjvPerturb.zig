@@ -17,7 +17,7 @@ pub fn init(
 ) @This() {
     var self: @This() = .default();
 
-    ffi.mjv_initPerturb(data.model.raw, data.data, scene.raw, &self.raw);
+    ffi.mjv_initPerturb(data.model.raw, data.raw, &scene.raw, &self.raw);
 
     return self;
 }
@@ -51,6 +51,6 @@ test "init MjvPerturb" {
     var scene: MjvScene = try .init(&model, 1000);
     defer scene.deinit();
 
-    const perturb: MjvPerturb = try .init(&data, &scene);
+    const perturb: MjvPerturb = .init(&data, &scene);
     _ = perturb;
 }
