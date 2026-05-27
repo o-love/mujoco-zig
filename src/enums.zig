@@ -29,7 +29,7 @@ fn mEnum(comptime prefix: []const u8) type {
     }
 
     return @Enum(
-        u32,
+        i32,
         .exhaustive,
         field_names[0..count],
         field_values[0..count],
