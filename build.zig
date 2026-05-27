@@ -4,7 +4,7 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const renderer = b.option(bool, "renderer", "Enable the renderer (MjrContext) and link GLFW") orelse false;
+    const opengl = b.option(bool, "opengl", "Enable MuJoCo OpenGL and link GLFW") orelse false;
 
     const mujoco_dep = b.dependency("mujoco", .{});
 
@@ -17,35 +17,37 @@ pub fn build(b: *std.Build) void {
 
     const mujoco_lib = buildMujoco(b, target, optimize, mujoco_dep);
 
-    const build_options = b.addOptions();
-    build_options.addOption(bool, "renderer", renderer);
+    const zglfw_dep = b.dependency("zglfw", .{});
+    const zglfw_mod = b.createModule(.{
+        .root_source_file = zglfw_dep.path("src/glfw.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
 
-    const module_options: std.Build.Module.CreateOptions = .{
+    const c_mod = c_deps.createModule();
+
+    const build_options = b.addOptions();
+    build_options.addOption(bool, "opengl", opengl);
+
+    const mod = b.addModule("mujoco_zig", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = optimize,
         .imports = &.{
             .{
                 .name = "c",
-                .module = c_deps.createModule(),
+                .module = c_mod,
             },
             .{
                 .name = "build_options",
                 .module = build_options.createModule(),
             },
         },
-    };
-    const mod = b.addModule("mujoco_zig", module_options);
+    });
     mod.linkLibrary(mujoco_lib);
 
-    const zglfw_mod = if (renderer) b.createModule(.{
-        .root_source_file = b.dependency("zglfw", .{}).path("src/glfw.zig"),
-        .target = target,
-        .optimize = optimize,
-    }) else null;
-
-    if (renderer) {
-        addGlfw(mod, zglfw_mod.?);
+    if (opengl) {
+        addGlfw(mod, zglfw_mod);
     }
 
     const mod_tests = b.addTest(.{
@@ -56,19 +58,41 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
 
-    buildViewer(b, mod, target, optimize, zglfw_mod);
+    buildViewer(b, target, optimize, mujoco_lib, c_mod, zglfw_mod);
 }
 
 fn buildViewer(
     b: *std.Build,
-    mod: *std.Build.Module,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    zglfw_mod: ?*std.Build.Module,
+    mujoco_lib: *std.Build.Step.Compile,
+    c_mod: *std.Build.Module,
+    zglfw_mod: *std.Build.Module,
 ) void {
     const viewer_step = b.step("viewer", "Build the OpenGL viewer example");
     const examples_step = b.step("examples", "Build all examples");
     examples_step.dependOn(viewer_step);
+
+    const viewer_build_options = b.addOptions();
+    viewer_build_options.addOption(bool, "opengl", true);
+
+    const viewer_mod = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{
+                .name = "c",
+                .module = c_mod,
+            },
+            .{
+                .name = "build_options",
+                .module = viewer_build_options.createModule(),
+            },
+        },
+    });
+    viewer_mod.linkLibrary(mujoco_lib);
+    addGlfw(viewer_mod, zglfw_mod);
 
     const viewer_exe = b.addExecutable(.{
         .name = "opengl-viewer",
@@ -78,20 +102,11 @@ fn buildViewer(
             .optimize = optimize,
         }),
     });
-    viewer_exe.root_module.addImport("mujoco_zig", mod);
-    if (zglfw_mod) |z| {
-        addGlfw(viewer_exe.root_module, z);
-    }
+    viewer_exe.root_module.addImport("mujoco_zig", viewer_mod);
+    addGlfw(viewer_exe.root_module, zglfw_mod);
 
     const install_viewer = b.addInstallArtifact(viewer_exe, .{});
     viewer_step.dependOn(&install_viewer.step);
-
-    const run_viewer = b.addRunArtifact(viewer_exe);
-    if (b.args) |args| {
-        run_viewer.addArgs(args);
-    }
-    const run_viewer_step = b.step("run-viewer", "Run the OpenGL viewer example");
-    run_viewer_step.dependOn(&run_viewer.step);
 }
 
 fn addGlfw(
