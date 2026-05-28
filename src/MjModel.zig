@@ -13,6 +13,12 @@ const MjModel = @This();
 
 raw: *ffi.mjModel,
 
+pub fn fromRaw(model: *ffi.mjModel) @This() {
+    return .{
+        .raw = model,
+    };
+}
+
 pub fn fromXml(gpa: Allocator, path: []const u8) !@This() {
     const c_path = try gpa.dupeSentinel(u8, path, 0);
     defer gpa.free(c_path);
@@ -65,7 +71,7 @@ pub fn data(self: *const @This()) !MjData {
         return error.LoadingData;
     }
 
-    return MjData.from_raw(raw_data, self);
+    return MjData.fromRaw(raw_data, self);
 }
 
 pub fn size(self: *const @This()) mujoco_zig.MjtSize {

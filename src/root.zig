@@ -4,6 +4,7 @@ const build_options = @import("build_options");
 
 pub const MjModel = @import("MjModel.zig");
 pub const MjData = @import("MjData.zig");
+pub const MjSpec = @import("MjSpec.zig");
 
 // Auxiliary
 pub const MjVFS = @import("MjVFS.zig");
@@ -102,6 +103,7 @@ pub const init = @import("init.zig").init;
 test {
     _ = @import("MjData.zig");
     _ = @import("MjModel.zig");
+    _ = @import("MjSpec.zig");
     _ = @import("MjVFS.zig");
     _ = @import("log.zig");
     _ = @import("enums.zig");
@@ -113,4 +115,6 @@ test {
     if (build_options.opengl) {
         _ = @import("visualization/opengl/MjrContext.zig");
     }
+
+    _ = @import("test_utils.zig");
 }

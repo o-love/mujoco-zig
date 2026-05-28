@@ -3,6 +3,7 @@ const mujoco_zig = @import("root.zig");
 
 const ffi = mujoco_zig.ffi;
 const MjModel = mujoco_zig.MjModel;
+const MjSpec = mujoco_zig.MjSpec;
 
 const MjData = @This();
 
@@ -15,7 +16,7 @@ pub fn new(model: MjModel) !@This() {
     return data;
 }
 
-pub fn from_raw(data: *ffi.mjData, model: *const MjModel) @This() {
+pub fn fromRaw(data: *ffi.mjData, model: *const MjModel) @This() {
     return .{
         .raw = data,
         .model = model,
@@ -31,6 +32,16 @@ pub fn deinit(self: *@This()) void {
 
 pub fn step(self: *@This()) !void {
     ffi.mj_step(self.model.raw, self.raw);
+}
+
+pub fn recompile(self: *@This(), model: *MjModel, spec: *MjSpec) !void {
+    const result = ffi.mj_recompile(spec.raw, null, model.raw, self.raw);
+
+    if (result != 0) {
+        return error.SpecCompile;
+    }
+
+    self.model = model;
 }
 
 test "ffi: load hello mujoco model" {

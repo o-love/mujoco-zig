@@ -58,9 +58,21 @@ const Example = struct {
 const examples = [_]Example{
     .{
         .name = "opengl-viewer",
-        .path = "examples/opengl-viewer/viewer.zig",
         .desc = "Build the OpenGL viewer example",
+        .path = "examples/opengl-viewer/viewer.zig",
         .uses_viewer = true,
+    },
+    .{
+        .name = "hot_recompiler",
+        .desc = "Build mj_recompile example",
+        .path = "examples/hot_recompiler.zig",
+        .uses_viewer = false,
+    },
+    .{
+        .name = "procedural_tree",
+        .desc = "Build procedural tree example",
+        .path = "examples/procedural_tree.zig",
+        .uses_viewer = false,
     },
 };
 

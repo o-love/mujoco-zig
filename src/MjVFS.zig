@@ -34,7 +34,7 @@ pub fn addFile(
     filedir: []const u8,
     filename: []const u8,
 ) AddFileError!void {
-    // TODO: Consider using max path. Risk: mujoco doesn't have limit.
+    // TODO: Consider using max_path. Risk: mujoco doesn't have limit.
 
     const filename_sent: [:0]u8 = try gpa.dupeSentinel(u8, filename, 0);
     defer gpa.free(filename_sent);
