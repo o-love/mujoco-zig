@@ -18,14 +18,13 @@ pub fn main(init: std.process.Init) !void {
 
     var arg_it = init.minimal.args.iterate();
     _ = arg_it.skip();
-    const model_path = arg_it.next() orelse "assets/hello.xml";
+    const model_path = arg_it.next() orelse "src/assets/hello.xml";
 
     const out = std.Io.File.stdout();
     var buffer: [1024]u8 = undefined;
     const writerStruct = out.writer(io, &buffer);
-    defer _ = writerStruct.flush();
 
-    const writer = writerStruct.interface;
+    var writer = writerStruct.interface;
     try writer.print("Initializing GLFW...\n", .{});
 
     try glfw.init();
@@ -47,7 +46,7 @@ pub fn main(init: std.process.Init) !void {
     try writer.print("Window opened successfully.\n", .{});
 
     try writer.print("Building model\n", .{});
-    var model: MjModel = try .from_xml(model_path, init.gpa);
+    var model: MjModel = try .fromXmlZ(model_path);
     defer model.deinit();
 
     var data: MjData = try model.data();
