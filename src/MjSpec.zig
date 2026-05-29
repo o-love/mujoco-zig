@@ -81,6 +81,29 @@ pub fn compile(self: *@This()) !MjModel {
     return .fromRaw(raw_model);
 }
 
+pub fn fromXmlStr(gpa: Allocator, str: []const u8) !@This() {
+    const c_string: [:0]const u8 = try gpa.dupeSentinel(u8, str, 0);
+    defer gpa.free(c_string);
+
+    return fromXmlStrZ(c_string);
+}
+
+pub fn fromXmlStrZ(str: [:0]const u8) !@This() {
+    const buf_size = 1000;
+    var err_buffer: [buf_size:0]u8 = undefined;
+
+    const result = ffi.mj_parseXMLString(str, null, &err_buffer, buf_size);
+
+    if (result == null) {
+        log.err("Error parsing XML string: {s}", .{err_buffer});
+        return error.LoadingModel;
+    }
+
+    return .{
+        .raw = result,
+    };
+}
+
 pub fn saveXml(self: *const @This(), gpa: Allocator, filename: []const u8) !void {
     const c_path = try gpa.dupeSentinel(u8, filename, 0);
     defer gpa.free(c_path);
@@ -205,4 +228,17 @@ test world {
     const result = spec.world();
 
     try testing.expect(result != null);
+}
+
+test fromXmlStr {
+    const model =
+        \\ <mujoco>
+        \\  <default>
+        \\    <joint springdamper="0.003 0.7"/>
+        \\  </default>
+        \\ </mujoco>
+    ;
+
+    var spec: MjSpec = try .fromXmlStr(testing.allocator, model);
+    defer spec.deinit();
 }
