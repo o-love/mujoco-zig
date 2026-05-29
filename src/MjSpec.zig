@@ -100,13 +100,109 @@ pub fn saveXmlZ(self: *const @This(), fileaname: [:0]const u8) !void {
     }
 }
 
-fn findElementZ(self: *@This(), obj_type: ObjectType, name: [:0]const u8) ?*ffi.mjsElement {
-    const result = ffi.mjs_findElement(self.raw, @intFromEnum(obj_type), name);
-
-    return result;
+fn obj(comptime obj_type: ObjectType) type {
+    return switch (obj_type) {
+        .body => ffi.mjsBody,
+        .xbody => ffi.mjsBody,
+        .joint => ffi.mjsJoint,
+        .geom => ffi.mjsGeom,
+        .site => ffi.mjsSite,
+        .camera => ffi.mjsCamera,
+        .light => ffi.mjsLight,
+        .flex => ffi.mjsFlex,
+        .mesh => ffi.mjsMesh,
+        .skin => ffi.mjsSkin,
+        .hfield => ffi.mjsHField,
+        .texture => ffi.mjsTexture,
+        .material => ffi.mjsMaterial,
+        .pair => ffi.mjsPair,
+        .exclude => ffi.mjsExclude,
+        .equality => ffi.mjsEquality,
+        .tendon => ffi.mjsTendon,
+        .actuator => ffi.mjsActuator,
+        .sensor => ffi.mjsSensor,
+        .numeric => ffi.mjsNumeric,
+        .text => ffi.mjsText,
+        .tuple => ffi.mjsTuple,
+        .key => ffi.mjsKey,
+        .plugin => ffi.mjsPlugin,
+        .dof, .unknown, .frame, .default, .model => {
+            @compileError(std.fmt.comptimePrint("Unsupported object type: {s}", .{@tagName(obj_type)}));
+        },
+    };
 }
+
+fn asObj(comptime obj_type: ObjectType, elem: ?*ffi.mjsElement) ?*obj(obj_type) {
+    if (elem == null) {
+        return null;
+    }
+
+    std.debug.assert(elem.?.elemtype == @intFromEnum(obj_type));
+
+    const castedElem: ?*obj(obj_type) = switch (obj_type) {
+        .body => ffi.mjs_asBody,
+        .xbody => ffi.mjs_asBody,
+        .joint => ffi.mjs_asJoint,
+        .geom => ffi.mjs_asGeom,
+        .site => ffi.mjs_asSite,
+        .camera => ffi.mjs_asCamera,
+        .light => ffi.mjs_asLight,
+        .flex => ffi.mjs_asFlex,
+        .mesh => ffi.mjs_asMesh,
+        .skin => ffi.mjs_asSkin,
+        .hfield => ffi.mjs_asHField,
+        .texture => ffi.mjs_asTexture,
+        .material => ffi.mjs_asMaterial,
+        .pair => ffi.mjs_asPair,
+        .exclude => ffi.mjs_asExclude,
+        .equality => ffi.mjs_asEquality,
+        .tendon => ffi.mjs_asTendon,
+        .actuator => ffi.mjs_asActuator,
+        .sensor => ffi.mjs_asSensor,
+        .numeric => ffi.mjs_asNumeric,
+        .text => ffi.mjs_asText,
+        .tuple => ffi.mjs_asTuple,
+        .key => ffi.mjs_asKey,
+        .plugin => ffi.mjs_asPlugin,
+        .dof, .unknown, .frame, .default, .model => {
+            @compileError(std.fmt.comptimePrint("Unsupported object type: {s}", .{@tagName(obj_type)}));
+        },
+    }(elem);
+
+    std.debug.assert(castedElem != null);
+
+    return castedElem.?;
+}
+
+pub fn findZ(self: *@This(), comptime obj_type: ObjectType, name: [:0]const u8) ?*obj(obj_type) {
+    const element = ffi.mjs_findElement(self.raw, @intFromEnum(obj_type), name);
+
+    return asObj(obj_type, element);
+}
+
+pub fn find(self: *@This(), gpa: Allocator, comptime obj_type: ObjectType, name: []const u8) error{OutOfMemory}!?*obj(obj_type) {
+    const c_name = try gpa.dupeSentinel(u8, name, 0);
+    defer gpa.free(c_name);
+
+    return self.findZ(obj_type, name);
+}
+
+pub fn world(self: *@This()) ?*ffi.mjsBody {
+    return self.findZ(.body, "world");
+}
+
+const testing = std.testing;
 
 test "init and deinit" {
     var spec: MjSpec = try .init();
     defer spec.deinit();
+}
+
+test world {
+    var spec: MjSpec = try @import("test_utils.zig").loadBasicSpec();
+    defer spec.deinit();
+
+    const result = spec.world();
+
+    try testing.expect(result != null);
 }
