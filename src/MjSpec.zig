@@ -100,6 +100,23 @@ pub fn saveXmlZ(self: *const @This(), fileaname: [:0]const u8) !void {
     }
 }
 
+pub fn findZ(self: *@This(), comptime obj_type: ObjectType, name: [:0]const u8) ?*obj(obj_type) {
+    const element = ffi.mjs_findElement(self.raw, @intFromEnum(obj_type), name);
+
+    return asObj(obj_type, element);
+}
+
+pub fn find(self: *@This(), gpa: Allocator, comptime obj_type: ObjectType, name: []const u8) error{OutOfMemory}!?*obj(obj_type) {
+    const c_name = try gpa.dupeSentinel(u8, name, 0);
+    defer gpa.free(c_name);
+
+    return self.findZ(obj_type, name);
+}
+
+pub fn world(self: *@This()) ?*ffi.mjsBody {
+    return self.findZ(.body, "world");
+}
+
 fn obj(comptime obj_type: ObjectType) type {
     return switch (obj_type) {
         .body => ffi.mjsBody,
@@ -172,23 +189,6 @@ fn asObj(comptime obj_type: ObjectType, elem: ?*ffi.mjsElement) ?*obj(obj_type) 
     std.debug.assert(castedElem != null);
 
     return castedElem.?;
-}
-
-pub fn findZ(self: *@This(), comptime obj_type: ObjectType, name: [:0]const u8) ?*obj(obj_type) {
-    const element = ffi.mjs_findElement(self.raw, @intFromEnum(obj_type), name);
-
-    return asObj(obj_type, element);
-}
-
-pub fn find(self: *@This(), gpa: Allocator, comptime obj_type: ObjectType, name: []const u8) error{OutOfMemory}!?*obj(obj_type) {
-    const c_name = try gpa.dupeSentinel(u8, name, 0);
-    defer gpa.free(c_name);
-
-    return self.findZ(obj_type, name);
-}
-
-pub fn world(self: *@This()) ?*ffi.mjsBody {
-    return self.findZ(.body, "world");
 }
 
 const testing = std.testing;
