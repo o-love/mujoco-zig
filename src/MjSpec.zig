@@ -140,6 +140,22 @@ pub fn world(self: *@This()) ?*ffi.mjsBody {
     return self.findZ(.body, "world");
 }
 
+pub fn option(self: *const @This()) *ffi.mjOption {
+    return &self.raw.option;
+}
+
+pub fn stats(self: *const @This()) *ffi.mjStatistic {
+    return &self.raw.stat;
+}
+
+pub fn compiler(self: *const @This()) *ffi.mjsCompiler {
+    return &self.raw.compiler;
+}
+
+pub fn visual(self: *const @This()) *ffi.mjVisual {
+    return &self.raw.visual;
+}
+
 fn obj(comptime obj_type: ObjectType) type {
     return switch (obj_type) {
         .body => ffi.mjsBody,
@@ -215,6 +231,7 @@ fn asObj(comptime obj_type: ObjectType, elem: ?*ffi.mjsElement) ?*obj(obj_type) 
 }
 
 const testing = std.testing;
+const test_utils = @import("test_utils.zig");
 
 test "init and deinit" {
     var spec: MjSpec = try .init();
@@ -222,7 +239,7 @@ test "init and deinit" {
 }
 
 test world {
-    var spec: MjSpec = try @import("test_utils.zig").loadBasicSpec();
+    var spec: MjSpec = try test_utils.loadBasicSpec();
     defer spec.deinit();
 
     const result = spec.world();
@@ -231,7 +248,7 @@ test world {
 }
 
 test fromXmlStr {
-    const model =
+    const model_str =
         \\ <mujoco>
         \\  <default>
         \\    <joint springdamper="0.003 0.7"/>
@@ -239,6 +256,24 @@ test fromXmlStr {
         \\ </mujoco>
     ;
 
-    var spec: MjSpec = try .fromXmlStr(testing.allocator, model);
+    var spec: MjSpec = try .fromXmlStr(testing.allocator, model_str);
     defer spec.deinit();
+}
+
+test compiler {
+    var spec: MjSpec = try test_utils.loadBasicSpec();
+    defer spec.deinit();
+
+    const result = spec.compiler();
+    _ = result;
+}
+
+test option {
+    var spec: MjSpec = try test_utils.loadBasicSpec();
+    defer spec.deinit();
+
+    const optionA = spec.option();
+    optionA.timestep = 0.0123;
+
+    try testing.expectApproxEqRel(0.0123, spec.raw.option.timestep, 0.0001);
 }
