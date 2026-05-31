@@ -13,6 +13,10 @@ const std = @import("std");
 const mujoco_zig = @import("mujoco_zig");
 
 const MjSpec = mujoco_zig.MjSpec;
+const MjModel = mujoco_zig.MjModel;
+const MjData = mujoco_zig.MjData;
+const Allocator = std.mem.Allocator;
+const DisableFlag = mujoco_zig.enums.DisableFlag;
 
 const brown = [4]f32{ 0.4, 0.24, 0.0, 1.0 };
 const green = [4]f32{ 0.0, 0.7, 0.2, 1.0 };
@@ -38,9 +42,27 @@ const model_xml =
 ;
 
 pub fn main(init: std.process.Init) !void {
-    const io = init.io;
-    mujoco_zig.init();
+    var model: MjModel = try build_tree(init.gpa);
+    model.deinit();
+}
 
-    var spec: MjSpec = try .fromXmlStr(init.gpa, model_xml);
+fn build_tree(gpa: Allocator) !MjModel {
+    var spec: MjSpec = try .fromXmlStr(gpa, model_xml);
     defer spec.deinit();
+
+    var options = spec.option();
+    options.timestep = 0.002;
+    options.density = 1.294;
+    options.wind[0] = 0.0;
+    options.disableflags |= @intFromEnum(DisableFlag.constraint);
+
+    var stat = spec.stats();
+    stat.center = .{0.0, 0.0, 0.5};
+    stat.extent = 1.0;
+
+    var world = spec.world().?;
+
+    mujoco_zig.ffi.mjs_add
+
+    return try spec.compile();
 }

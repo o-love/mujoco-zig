@@ -6,6 +6,9 @@ pub const MjModel = @import("MjModel.zig");
 pub const MjData = @import("MjData.zig");
 pub const MjSpec = @import("MjSpec.zig");
 
+// Object Types
+pub const elements = @import("elements.zig");
+
 // Auxiliary
 pub const MjVFS = @import("MjVFS.zig");
 
@@ -107,6 +110,7 @@ test {
     _ = @import("MjVFS.zig");
     _ = @import("log.zig");
     _ = @import("enums.zig");
+    _ = @import("elements.zig");
     _ = @import("visualization/MjvCamera.zig");
     _ = @import("visualization/MjvOption.zig");
     _ = @import("visualization/MjvScene.zig");

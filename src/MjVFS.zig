@@ -10,6 +10,8 @@ raw: ffi.mjVFS,
 pub fn init() @This() {
     var vfs: ffi.mjVFS = undefined;
 
+    mujoco_zig.init();
+
     ffi.mj_defaultVFS(&vfs);
 
     return .{

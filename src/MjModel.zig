@@ -45,6 +45,8 @@ fn load(c_path: [:0]const u8, vfs: ?*const MjVFS) !@This() {
     const buf_size = 1000;
     var err_buffer: [buf_size:0]u8 = undefined;
 
+    mujoco_zig.init();
+
     const raw_vfs: ?*const ffi.mjVFS = if (vfs) |v| &v.raw else null;
 
     const raw_model = ffi.mj_loadXML(c_path, raw_vfs, &err_buffer, 1000);

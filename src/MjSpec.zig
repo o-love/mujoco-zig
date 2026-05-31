@@ -12,6 +12,8 @@ const ObjectType = mujoco_zig.enums.ObjectType;
 raw: *ffi.mjSpec,
 
 pub fn init() !@This() {
+    mujoco_zig.init();
+
     const spec = ffi.mj_makeSpec();
 
     if (spec == null) {
@@ -53,6 +55,8 @@ pub fn fromXmlVfsZ(path: [:0]const u8, vfs: *const MjVFS) !@This() {
 fn load(c_path: [:0]const u8, vfs: ?*const MjVFS) !@This() {
     const buf_size = 1000;
     var err_buffer: [buf_size:0]u8 = undefined;
+
+    mujoco_zig.init();
 
     const raw_vfs: ?*const ffi.mjVFS = if (vfs) |v| &v.raw else null;
 
@@ -156,79 +160,6 @@ pub fn visual(self: *const @This()) *ffi.mjVisual {
     return &self.raw.visual;
 }
 
-fn obj(comptime obj_type: ObjectType) type {
-    return switch (obj_type) {
-        .body => ffi.mjsBody,
-        .xbody => ffi.mjsBody,
-        .joint => ffi.mjsJoint,
-        .geom => ffi.mjsGeom,
-        .site => ffi.mjsSite,
-        .camera => ffi.mjsCamera,
-        .light => ffi.mjsLight,
-        .flex => ffi.mjsFlex,
-        .mesh => ffi.mjsMesh,
-        .skin => ffi.mjsSkin,
-        .hfield => ffi.mjsHField,
-        .texture => ffi.mjsTexture,
-        .material => ffi.mjsMaterial,
-        .pair => ffi.mjsPair,
-        .exclude => ffi.mjsExclude,
-        .equality => ffi.mjsEquality,
-        .tendon => ffi.mjsTendon,
-        .actuator => ffi.mjsActuator,
-        .sensor => ffi.mjsSensor,
-        .numeric => ffi.mjsNumeric,
-        .text => ffi.mjsText,
-        .tuple => ffi.mjsTuple,
-        .key => ffi.mjsKey,
-        .plugin => ffi.mjsPlugin,
-        .dof, .unknown, .frame, .default, .model => {
-            @compileError(std.fmt.comptimePrint("Unsupported object type: {s}", .{@tagName(obj_type)}));
-        },
-    };
-}
-
-fn asObj(comptime obj_type: ObjectType, elem: ?*ffi.mjsElement) ?*obj(obj_type) {
-    if (elem == null) {
-        return null;
-    }
-
-    std.debug.assert(elem.?.elemtype == @intFromEnum(obj_type));
-
-    const castedElem: ?*obj(obj_type) = switch (obj_type) {
-        .body => ffi.mjs_asBody,
-        .xbody => ffi.mjs_asBody,
-        .joint => ffi.mjs_asJoint,
-        .geom => ffi.mjs_asGeom,
-        .site => ffi.mjs_asSite,
-        .camera => ffi.mjs_asCamera,
-        .light => ffi.mjs_asLight,
-        .flex => ffi.mjs_asFlex,
-        .mesh => ffi.mjs_asMesh,
-        .skin => ffi.mjs_asSkin,
-        .hfield => ffi.mjs_asHField,
-        .texture => ffi.mjs_asTexture,
-        .material => ffi.mjs_asMaterial,
-        .pair => ffi.mjs_asPair,
-        .exclude => ffi.mjs_asExclude,
-        .equality => ffi.mjs_asEquality,
-        .tendon => ffi.mjs_asTendon,
-        .actuator => ffi.mjs_asActuator,
-        .sensor => ffi.mjs_asSensor,
-        .numeric => ffi.mjs_asNumeric,
-        .text => ffi.mjs_asText,
-        .tuple => ffi.mjs_asTuple,
-        .key => ffi.mjs_asKey,
-        .plugin => ffi.mjs_asPlugin,
-        .dof, .unknown, .frame, .default, .model => {
-            @compileError(std.fmt.comptimePrint("Unsupported object type: {s}", .{@tagName(obj_type)}));
-        },
-    }(elem);
-
-    std.debug.assert(castedElem != null);
-
-    return castedElem.?;
-}
 
 const testing = std.testing;
 const test_utils = @import("test_utils.zig");

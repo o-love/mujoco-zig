@@ -18,7 +18,15 @@ fn user_warning_callback(msg: [*c]const u8) callconv(.c) void {
     }
 }
 
+var has_init: std.atomic.Value(bool) = .init(false);
 pub fn init() void {
+    if (has_init.load(.acquire)) {
+        return;
+    }
+    has_init.store(true, .monotonic);
+    // While using a mutex would make it thread safe. I want to avoid a dependency on Io.
+    // Initializing the error callbacks multiple time should have no side effects.
+
     ffi.mju_user_error = user_error_callback;
     ffi.mju_user_warning = user_warning_callback;
 
