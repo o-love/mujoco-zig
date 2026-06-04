@@ -15,6 +15,18 @@ pub fn build(b: *std.Build) void {
     });
     c_deps.addIncludePath(mujoco_dep.path("include"));
 
+    const c_mod = c_deps.createModule();
+    c_mod.addCSourceFile(.{
+        .file = b.path("src/cppViewer/simulate_c.cc"),
+        .flags = &.{"-std=c++20"},
+    });
+    c_mod.addIncludePath(mujoco_dep.path("include"));
+    c_mod.addIncludePath(mujoco_dep.path("simulate"));
+    if (target.result.os.tag == .macos) {
+        c_mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+    }
+    c_mod.link_libcpp = true;
+
     const mujoco_lib = buildMujoco(b, target, optimize, mujoco_dep);
 
     const zglfw_dep = b.dependency("zglfw", .{});
@@ -23,8 +35,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
-    const c_mod = c_deps.createModule();
 
     const builder: ModBuilder = .{
         .b = b,
@@ -157,6 +167,8 @@ fn addGlfw(
     if (mod.resolved_target.?.result.os.tag == .macos) {
         mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
         mod.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+        mod.linkFramework("CoreVideo", .{});
+        mod.linkFramework("Cocoa", .{});
     }
 }
 
@@ -166,9 +178,6 @@ pub fn buildMujoco(
     optimize: std.builtin.OptimizeMode,
     mujoco_dep: *std.Build.Dependency,
 ) *std.Build.Step.Compile {
-    // TODO: Things to turn into options
-    const is_wasm = false;
-
     const mujoco_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -190,6 +199,7 @@ pub fn buildMujoco(
     mujoco_mod.addIncludePath(mujoco_dep.path("include"));
     mujoco_mod.addIncludePath(mujoco_dep.path("plugin"));
     mujoco_mod.addIncludePath(mujoco_dep.path("src"));
+    mujoco_mod.addIncludePath(mujoco_dep.path("simulate"));
 
     for (MujocoHeaders) |header| {
         mujoco_lib.installHeader(mujoco_dep.path(header), header["include/".len..]);
@@ -205,10 +215,15 @@ pub fn buildMujoco(
         MujocoThreadSources,
         MujocoClassicRenderCSources,
         MujocoClassicRenderCppSources,
+        MujocoUiSources,
+        MujocoSimulateSources,
     });
 
-    if (!is_wasm) {
-        mujoco_modD.addToModule(&.{});
+    if (target.result.os.tag == .macos) {
+        mujoco_modD.addToModule(&.{MujocoSimulateMacosSources});
+        mujoco_mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
+        mujoco_mod.linkFramework("CoreVideo", .{});
+        mujoco_mod.linkFramework("Cocoa", .{});
     }
 
     return mujoco_lib;
@@ -485,5 +500,37 @@ const MujocoClassicRenderCSources: MujocoModule = .{
         "render_gl2.c",
         "render_gl3.c",
         "render_util.c",
+    },
+};
+
+const MujocoUiSources: MujocoModule = .{
+    .root = "src/ui",
+    .sources = &.{
+        "ui_main.c",
+    },
+};
+
+const MujocoSimulateSources: MujocoModule = .{
+    .root = "simulate",
+    .sources = &.{
+        "simulate.cc",
+        "glfw_adapter.cc",
+        "platform_ui_adapter.cc",
+        "glfw_dispatch.cc",
+    },
+    .flags = &.{
+        "-std=c++20",
+    },
+};
+
+const MujocoSimulateMacosSources: MujocoModule = .{
+    .root = "simulate",
+    .sources = &.{
+        "macos_gui.mm",
+        "glfw_corevideo.mm",
+    },
+    .flags = &.{
+        "-std=c++20",
+        "-fobjc-arc",
     },
 };
