@@ -48,7 +48,7 @@ test "init and deinit" {
     glfw.swapInterval(1);
     glfw.swapBuffers(window);
 
-    var model: MjModel = try .from_xml(model_path, testing.allocator);
+    var model: MjModel = try MjModel.fromXml(testing.allocator, model_path);
     defer model.deinit();
 
     var context: MjrContext = try .init(&model, 200);

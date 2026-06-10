@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Oscar Labrada-Love
 // Dual MIT and Apache License
 
-#include "../c.h"
+#include "simulate_c.h"
 #include "simulate.h"
 #include "glfw_adapter.h"
 #include <memory>

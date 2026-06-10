@@ -1,5 +1,7 @@
 const std = @import("std");
 pub const ffi = @import("c");
+pub const ffi_cpp_viewer = defineIfOpengl(@import("mujoco_cpp_viewer"));
+
 const build_options = @import("build_options");
 
 pub const MjModel = @import("MjModel.zig");
@@ -16,7 +18,7 @@ pub const MjvScene = @import("visualization/MjvScene.zig");
 pub const MjvPerturb = @import("visualization/MjvPerturb.zig");
 
 // Opengl
-pub const MjrContext = if (build_options.opengl) @import("visualization/opengl/MjrContext.zig") else @compileError("MjrContext requires the 'opengl' build option");
+pub const MjrContext = defineIfOpengl(@import("visualization/opengl/MjrContext.zig"));
 
 // Primitive Types
 pub const MjtNum = ffi.mjtNum;
@@ -99,6 +101,14 @@ pub const MjtMeshBuiltin = enums.BuiltinMeshType;
 pub const MjtPluginCapabilityBit = enums.PluginCapabilityFlag;
 
 pub const init = @import("init.zig").init;
+
+fn defineIfOpengl(t: type) type {
+    if (build_options.opengl) {
+        return t;
+    }
+
+    @compileError("ffi_cpp_viewer requires the 'opengl' build option");
+}
 
 test {
     _ = @import("MjData.zig");

@@ -4,48 +4,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const opengl = b.option(bool, "opengl", "Enable MuJoCo OpenGL and link GLFW") orelse false;
+    const with_opengl = b.option(bool, "opengl", "Enable MuJoCo OpenGL and link GLFW") orelse false;
 
-    const mujoco_dep = b.dependency("mujoco", .{});
+    const builder = setupModViewer(b, target, optimize);
 
-    const c_deps = b.addTranslateC(.{
-        .root_source_file = b.path("src/c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
-    c_deps.addIncludePath(mujoco_dep.path("include"));
-
-    const c_mod = c_deps.createModule();
-    c_mod.addCSourceFile(.{
-        .file = b.path("src/cppViewer/simulate_c.cc"),
-        .flags = &.{"-std=c++20"},
-    });
-    c_mod.addIncludePath(mujoco_dep.path("include"));
-    c_mod.addIncludePath(mujoco_dep.path("simulate"));
-    if (target.result.os.tag == .macos) {
-        c_mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
-    }
-    c_mod.link_libcpp = true;
-
-    const mujoco_lib = buildMujoco(b, target, optimize, mujoco_dep);
-
-    const zglfw_dep = b.dependency("zglfw", .{});
-    const zglfw_mod = b.createModule(.{
-        .root_source_file = zglfw_dep.path("src/glfw.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const builder: ModBuilder = .{
-        .b = b,
-        .target = target,
-        .optimize = optimize,
-        .mujoco_lib = mujoco_lib,
-        .c_mod = c_mod,
-        .zglfw_mod = zglfw_mod,
-    };
-
-    const mod = builder.buildMod(opengl);
+    const mod = builder.buildMod(with_opengl);
 
     const mod_tests = b.addTest(.{
         .root_module = mod,
@@ -56,6 +19,63 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_mod_tests.step);
 
     buildExamples(&builder);
+}
+
+fn setupModViewer(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) ModBuilder {
+    const mujoco_dep = b.dependency("mujoco", .{});
+
+    const c_deps = b.addTranslateC(.{
+        .root_source_file = b.path("src/c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    c_deps.addIncludePath(mujoco_dep.path("include"));
+
+    const c_mod = c_deps.createModule();
+    c_mod.addIncludePath(mujoco_dep.path("include"));
+
+    const zglfw_dep = b.dependency("zglfw", .{});
+    const zglfw_mod = b.createModule(.{
+        .root_source_file = zglfw_dep.path("src/glfw.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+
+    const cpp_viewer_deps = b.addTranslateC(.{
+        .root_source_file = b.path("src/cppViewer/simulate_c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+    cpp_viewer_deps.addIncludePath(mujoco_dep.path("simulate"));
+    cpp_viewer_deps.addIncludePath(mujoco_dep.path("include"));
+
+    const cpp_viewer_mod = cpp_viewer_deps.createModule();
+    cpp_viewer_mod.addCSourceFile(.{
+        .file = b.path("src/cppViewer/simulate_c.cc"),
+        .flags = &.{"-std=c++20"},
+    });
+    cpp_viewer_mod.link_libcpp = true;
+    cpp_viewer_mod.addIncludePath(mujoco_dep.path("simulate"));
+    cpp_viewer_mod.addIncludePath(mujoco_dep.path("include"));
+    addGlfw(cpp_viewer_mod, zglfw_mod);
+
+
+    const builder: ModBuilder = .{
+        .b = b,
+        .target = target,
+        .optimize = optimize,
+        .mujoco_dep = mujoco_dep,
+        .c_mod = c_mod,
+        .zglfw_mod = zglfw_mod,
+        .cpp_viewer_mod = cpp_viewer_mod,
+    };
+
+    return builder;
 }
 
 const Example = struct {
@@ -121,9 +141,10 @@ const ModBuilder = struct {
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
-    mujoco_lib: *std.Build.Step.Compile,
+    mujoco_dep: *std.Build.Dependency,
     c_mod: *std.Build.Module,
     zglfw_mod: *std.Build.Module,
+    cpp_viewer_mod: *std.Build.Module,
 
     fn buildMod(
         self: *const ModBuilder,
@@ -131,6 +152,14 @@ const ModBuilder = struct {
     ) *std.Build.Module {
         const build_options = self.b.addOptions();
         build_options.addOption(bool, "opengl", with_opengl);
+
+        const mujoco_lib = buildMujoco(
+            self.b,
+            self.target,
+            self.optimize,
+            self.mujoco_dep,
+            with_opengl,
+        );
 
         const mod = self.b.addModule("mujoco_zig", .{
             .root_source_file = self.b.path("src/root.zig"),
@@ -147,10 +176,13 @@ const ModBuilder = struct {
                 },
             },
         });
-        mod.linkLibrary(self.mujoco_lib);
+
+        mod.linkLibrary(mujoco_lib);
 
         if (with_opengl) {
             addGlfw(mod, self.zglfw_mod);
+
+            mod.addImport("mujoco_cpp_viewer", self.cpp_viewer_mod);
         }
 
         return mod;
@@ -159,9 +191,11 @@ const ModBuilder = struct {
 
 fn addGlfw(
     mod: *std.Build.Module,
-    zglfw_mod: *std.Build.Module,
+    zglfw_mod: ?*std.Build.Module,
 ) void {
-    mod.addImport("zglfw", zglfw_mod);
+    if (zglfw_mod) |zmod| {
+        mod.addImport("zglfw", zmod);
+    }
     mod.linkSystemLibrary("glfw", .{});
 
     if (mod.resolved_target.?.result.os.tag == .macos) {
@@ -177,6 +211,7 @@ pub fn buildMujoco(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     mujoco_dep: *std.Build.Dependency,
+    with_opengl: bool,
 ) *std.Build.Step.Compile {
     const mujoco_mod = b.createModule(.{
         .target = target,
@@ -216,14 +251,18 @@ pub fn buildMujoco(
         MujocoClassicRenderCSources,
         MujocoClassicRenderCppSources,
         MujocoUiSources,
-        MujocoSimulateSources,
     });
 
-    if (target.result.os.tag == .macos) {
-        mujoco_modD.addToModule(&.{MujocoSimulateMacosSources});
-        mujoco_mod.addIncludePath(.{ .cwd_relative = "/opt/homebrew/include" });
-        mujoco_mod.linkFramework("CoreVideo", .{});
-        mujoco_mod.linkFramework("Cocoa", .{});
+    if (with_opengl) {
+        mujoco_modD.addToModule(&.{
+            MujocoSimulateSources,
+        });
+
+        addGlfw(mujoco_mod, null);
+
+        if (target.result.os.tag == .macos) {
+            mujoco_modD.addToModule(&.{MujocoSimulateMacosSources});
+        }
     }
 
     return mujoco_lib;

@@ -10,6 +10,7 @@ const MjvOption = mujoco_zig.MjvOption;
 const MjvPerturb = mujoco_zig.MjvPerturb;
 const MjvCamera = mujoco_zig.MjvCamera;
 const ffi = mujoco_zig.ffi;
+const ffi_cpp_viewer = mujoco_zig.ffi_cpp_viewer;
 
 pub fn main(init: std.process.Init) !void {
     mujoco_zig.init();
@@ -33,8 +34,8 @@ pub fn main(init: std.process.Init) !void {
     var camera: MjvCamera = .init();
 
     std.log.info("Creating C Simulate instance...", .{});
-    const sim = ffi.mujoco_cSimulate_create(&camera.raw, &options.raw, &perturb.raw, &scene.raw) orelse return error.SimulateCreateFailed;
-    defer ffi.mujoco_cSimulate_destroy(sim);
+    const sim = ffi_cpp_viewer.mujoco_cSimulate_create(&camera.raw, &options.raw, &perturb.raw, &scene.raw) orelse return error.SimulateCreateFailed;
+    defer ffi_cpp_viewer.mujoco_cSimulate_destroy(sim);
 
     // Create simulation thread
     const thread = try std.Thread.spawn(.{}, simulationLoop, .{ init.io, &data, sim, model_path });
@@ -42,23 +43,23 @@ pub fn main(init: std.process.Init) !void {
     std.log.info("Starting rendering loop...", .{});
 
     // This blocks until the window is closed
-    _ = ffi.mujoco_cSimulate_RenderLoop(sim);
+    _ = ffi_cpp_viewer.mujoco_cSimulate_RenderLoop(sim);
 
-    ffi.mujoco_cSimulate_ExitRequest(sim);
+    ffi_cpp_viewer.mujoco_cSimulate_ExitRequest(sim);
     thread.join();
 }
 
 fn simulationLoop(io: std.Io, data: *MjData, sim: *ffi.mujoco_Simulate, model_path: [:0]const u8) void {
     _ = std.Io.sleep(io, std.Io.Duration.fromNanoseconds(100 * std.time.ns_per_ms), .awake) catch {};
 
-    ffi.mujoco_cSimulate_Load(sim, data.model.raw, data.raw, model_path);
+    ffi_cpp_viewer.mujoco_cSimulate_Load(sim, data.model.raw, data.raw, model_path);
 
-    while (ffi.mujoco_cSimulate_ShouldExit(sim) == 0) {
+    while (ffi_cpp_viewer.mujoco_cSimulate_ShouldExit(sim) == 0) {
         const simstartTime = data.raw.time;
         while (data.raw.time - simstartTime < 1.0 / 60.0) {
             data.step() catch break;
         }
-        ffi.mujoco_cSimulate_Sync(sim, 0);
+        ffi_cpp_viewer.mujoco_cSimulate_Sync(sim, 0);
         _ = std.Io.sleep(io, std.Io.Duration.fromNanoseconds(1 * std.time.ns_per_ms), .awake) catch {};
     }
 }
