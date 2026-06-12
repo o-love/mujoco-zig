@@ -38,7 +38,6 @@ const model_xml =
 ;
 
 pub fn main(init: std.process.Init) !void {
-    const io = init.io;
     mujoco_zig.init();
 
     var spec: MjSpec = try .fromXmlStr(init.gpa, model_xml);

@@ -34,6 +34,7 @@ fn setupModViewer(
         .optimize = optimize,
     });
     c_deps.addIncludePath(mujoco_dep.path("include"));
+    c_deps.addIncludePath()
 
     const c_mod = c_deps.createModule();
     c_mod.addIncludePath(mujoco_dep.path("include"));
@@ -46,25 +47,6 @@ fn setupModViewer(
     });
 
 
-    const cpp_viewer_deps = b.addTranslateC(.{
-        .root_source_file = b.path("src/cppViewer/simulate_c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
-    cpp_viewer_deps.addIncludePath(mujoco_dep.path("simulate"));
-    cpp_viewer_deps.addIncludePath(mujoco_dep.path("include"));
-
-    const cpp_viewer_mod = cpp_viewer_deps.createModule();
-    cpp_viewer_mod.addCSourceFile(.{
-        .file = b.path("src/cppViewer/simulate_c.cc"),
-        .flags = &.{"-std=c++20"},
-    });
-    cpp_viewer_mod.link_libcpp = true;
-    cpp_viewer_mod.addIncludePath(mujoco_dep.path("simulate"));
-    cpp_viewer_mod.addIncludePath(mujoco_dep.path("include"));
-    addGlfw(cpp_viewer_mod, zglfw_mod);
-
-
     const builder: ModBuilder = .{
         .b = b,
         .target = target,
@@ -72,7 +54,6 @@ fn setupModViewer(
         .mujoco_dep = mujoco_dep,
         .c_mod = c_mod,
         .zglfw_mod = zglfw_mod,
-        .cpp_viewer_mod = cpp_viewer_mod,
     };
 
     return builder;
@@ -144,7 +125,6 @@ const ModBuilder = struct {
     mujoco_dep: *std.Build.Dependency,
     c_mod: *std.Build.Module,
     zglfw_mod: *std.Build.Module,
-    cpp_viewer_mod: *std.Build.Module,
 
     fn buildMod(
         self: *const ModBuilder,
@@ -182,7 +162,13 @@ const ModBuilder = struct {
         if (with_opengl) {
             addGlfw(mod, self.zglfw_mod);
 
-            mod.addImport("mujoco_cpp_viewer", self.cpp_viewer_mod);
+            self.c_mod.addCMacro("MUJOCO_ZIG_WITH_OPENGL", "");
+            self.c_mod.addCSourceFile(.{
+                .file = self.b.path("src/cppViewer/simulate_c.cc"),
+                .flags = &.{"-std=c++20"},
+            });
+            self.c_mod.addIncludePath(self.mujoco_dep.path("simulate"));
+
         }
 
         return mod;
