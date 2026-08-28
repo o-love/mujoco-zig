@@ -74,6 +74,12 @@ const examples = [_]Example{
         .path = "examples/procedural_tree.zig",
         .uses_viewer = false,
     },
+    .{
+        .name = "profiler",
+        .desc = "Benchmarks the performance of a model",
+        .path = "examples/profiler.zig",
+        .uses_viewer = false,
+    },
 };
 
 fn buildExamples(
@@ -199,10 +205,10 @@ pub fn buildMujoco(
 
     mujoco_modD.addToModule(&.{
         MujocoEngineSources,
+        MujocoEngineCppSources,
         MujocoXmlSources,
         MujocoUserCppSources,
         MujocoUserCSources,
-        MujocoThreadSources,
         MujocoClassicRenderCSources,
         MujocoClassicRenderCppSources,
     });
@@ -327,17 +333,18 @@ fn addQhull(mod: *std.Build.Module, b: *std.Build) void {
 }
 
 const MujocoHeaders = [_][]const u8{
+    "include/mujoco/mjassert.h",
     "include/mujoco/mjdata.h",
     "include/mujoco/mjexport.h",
     "include/mujoco/mjmacro.h",
     "include/mujoco/mjmodel.h",
     "include/mujoco/mjplugin.h",
     "include/mujoco/mjrender.h",
+    "include/mujoco/mjrfilament.h",
     "include/mujoco/mjsan.h",
     "include/mujoco/mjspec.h",
-    "include/mujoco/mjthread.h",
-    "include/mujoco/mjtnum.h",
-    "include/mujoco/mjui.h",
+    "include/mujoco/mjspecmacro.h",
+    "include/mujoco/mjtype.h",
     "include/mujoco/mjvisualize.h",
     "include/mujoco/mjxmacro.h",
     "include/mujoco/mujoco.h",
@@ -373,6 +380,7 @@ const MujocoEngineSources: MujocoModule = .{
     .sources = &.{
         "engine_callback.c",
         "engine_collision_box.c",
+        "engine_collision_continuous.c",
         "engine_collision_convex.c",
         "engine_collision_driver.c",
         "engine_collision_gjk.c",
@@ -381,7 +389,6 @@ const MujocoEngineSources: MujocoModule = .{
         "engine_core_constraint.c",
         "engine_core_util.c",
         "engine_core_smooth.c",
-        "engine_crossplatform.cc",
         "engine_derivative.c",
         "engine_derivative_fd.c",
         "engine_forward.c",
@@ -392,7 +399,6 @@ const MujocoEngineSources: MujocoModule = .{
         "engine_memory.c",
         "engine_name.c",
         "engine_passive.c",
-        "engine_plugin.cc",
         "engine_print.c",
         "engine_ray.c",
         "engine_sensor.c",
@@ -409,6 +415,18 @@ const MujocoEngineSources: MujocoModule = .{
         "engine_vis_init.c",
         "engine_vis_interact.c",
         "engine_vis_visualize.c",
+    },
+};
+
+const MujocoEngineCppSources: MujocoModule = .{
+    .root = "src/engine",
+    .sources = &.{
+        "engine_crossplatform.cc",
+        "engine_plugin.cc",
+        "engine_thread.cc",
+    },
+    .flags = &.{
+        "-std=c++20",
     },
 };
 
@@ -440,6 +458,7 @@ const MujocoUserCppSources: MujocoModule = .{
         "user_mesh.cc",
         "user_model.cc",
         "user_objects.cc",
+        "user_resolver.cc",
         "user_resource.cc",
         "user_threadpool.cc",
         "user_util.cc",
@@ -454,17 +473,6 @@ const MujocoUserCSources: MujocoModule = .{
     .root = "src/user",
     .sources = &.{
         "user_init.c",
-    },
-};
-
-const MujocoThreadSources: MujocoModule = .{
-    .root = "src/thread",
-    .sources = &.{
-        "thread_pool.cc",
-        "thread_task.cc",
-    },
-    .flags = &.{
-        "-std=c++20",
     },
 };
 

@@ -1,12 +1,12 @@
 .{
     .name = .mujoco_zig,
-    .version = "3.8.0-r.1",
+    .version = "3.12.0-r.1",
     .fingerprint = 0x7991aa5cb6145338, // Changing this has security and trust implications.
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .mujoco = .{
-            .url = "git+https://github.com/google-deepmind/mujoco#3.8.0",
-            .hash = "N-V-__8AAO91UwYuuoaPliI97gcqRRZIX46xOnXR2yRkmYUY",
+            .url = "git+https://github.com/google-deepmind/mujoco#3.12.0",
+            .hash = "N-V-__8AAAkXvwb10hbr8OmuHCl7tAcfqIGtopwJNtj3wPzV",
         },
         .ccd = .{
             .url = "https://github.com/danfis/libccd/archive/7931e764a19ef6b21b443376c699bbc9c6d4fba8.tar.gz",
