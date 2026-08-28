@@ -3,6 +3,7 @@ const mujoco_zig = @import("../root.zig");
 
 const ObjectType = mujoco_zig.enums.ObjectType;
 const ffi = mujoco_zig.ffi;
+const elems = mujoco_zig.elements;
 
 fn obj(comptime obj_type: ObjectType) type {
     return switch (obj_type) {
